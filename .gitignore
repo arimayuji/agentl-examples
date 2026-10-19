@@ -4,6 +4,8 @@
 # first run; CI regenerates it on every run.
 fx/data/
 *.sqlite
+# Copied from fx/pipeline.yaml by run.py and the workflow, so the page shows the real file.
+fx/site/pipeline.yaml
 *.sqlite-journal
 # Python
 __pycache__/

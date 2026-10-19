@@ -52,6 +52,12 @@ jobs:
         id: run
         run: python run.py
 
+      # The page shows the pipeline it was built with. run.py copies it too; this step covers a
+      # run that fails before that.
+      - name: Publish pipeline.yaml with the site
+        if: ${{ !cancelled() }}
+        run: cp pipeline.yaml site/pipeline.yaml
+
       # Deploys after a failed run too, so the status panel shows the failure.
       - name: Deploy to Cloudflare Pages
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}

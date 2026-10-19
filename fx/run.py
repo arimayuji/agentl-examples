@@ -2,12 +2,14 @@
 
     cd fx && python run.py
 
+Also copies pipeline.yaml into site/, where the page shows it.
 Exits 1 when the run fails, after writing status.json, so the dashboard can show the failure.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -25,6 +27,8 @@ def _iso(ts: float) -> str:
 
 
 def main() -> int:
+    # The page shows the pipeline it was built with, so it ships a copy next to index.html.
+    shutil.copyfile(HERE / "pipeline.yaml", HERE / "site" / "pipeline.yaml")
     events: list[dict[str, Any]] = []
 
     def listen(event: dict[str, Any]) -> None:
