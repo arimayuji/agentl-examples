@@ -98,9 +98,19 @@ code, pre { font-family: var(--mono); }
 
 /* ------------------------------------------------ hero */
 .hero { position: relative; overflow: hidden; background: var(--blue); color: #fff; padding: 56px 0 104px; }
-.hero::before { content: ""; position: absolute; top: -300px; right: -300px; width: 640px; height: 640px; border-radius: 50%; background: var(--blue-ink); }
-.hero::after { content: ""; position: absolute; right: 9%; bottom: 96px; width: 22px; height: 22px; border-radius: 50%; background: var(--sun); }
-.hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; }
+.hero-video { position: absolute; right: 0; top: 50%; height: 84%; width: auto; max-width: none; transform: translateY(-50%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 38%), linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 0, #000 38%), linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%); mask-composite: intersect; }
+/* Keeps the title readable over the video: solid brand blue on the left, clear on the right. */
+.hero-shade { position: absolute; inset: 0; background: linear-gradient(90deg, var(--blue) 0%, var(--blue) 30%, rgba(0,112,201,.9) 48%, rgba(0,112,201,0) 62%); }
+@media (max-width: 760px) {
+  .hero { background: var(--blue) url(assets/hero-loop-poster.jpg) 80% center / cover no-repeat; }
+  .hero-video { display: none; }
+  .hero-shade { background: linear-gradient(180deg, rgba(0,112,201,.95) 55%, rgba(0,112,201,.75)); }
+}
+.hero .wrap { min-height: 360px; }
+.hero .wrap > div { max-width: 600px; }
+@media (min-width: 761px) { .hero .lede { max-width: 540px; } }
 .kicker { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.85); }
 .kicker b { background: var(--sun); color: var(--navy); padding: 2px 8px; border-radius: 99px; letter-spacing: .06em; }
 .hero h1 { margin: 0 0 14px; font-size: clamp(32px, 5.4vw, 56px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; max-width: 720px; }
@@ -114,10 +124,8 @@ code, pre { font-family: var(--mono); }
 .hero .btn-white:hover { background: #fff; box-shadow: 4px 4px 0 var(--sun); }
 .facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 26px 0 0; padding: 0; list-style: none; font-size: 13px; color: rgba(255,255,255,.8); }
 .facts b { color: #fff; font-weight: 700; }
-.hero-cube { width: 200px; height: 200px; filter: drop-shadow(0 24px 40px rgba(0,30,70,.35)); animation: float 6s ease-in-out infinite; }
-@keyframes float { 50% { transform: translateY(-10px) rotate(-2deg); } }
-@media (prefers-reduced-motion: reduce) { .hero-cube { animation: none; } .btn { transition: none; } html { scroll-behavior: auto; } }
-@media (max-width: 760px) { .hero { padding: 36px 0 92px; } .hero .wrap { grid-template-columns: 1fr; } .hero-cube { display: none; } .hero::after { display: none; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } html { scroll-behavior: auto; } }
+@media (max-width: 760px) { .hero { padding: 36px 0 92px; } .hero .wrap { min-height: 0; } }
 
 /* ------------------------------------------------ cards */
 main { position: relative; margin-top: -64px; }
@@ -293,6 +301,9 @@ footer .links a:hover { color: var(--text); }
 </header>
 
 <section class="hero">
+  <!-- Sources are added by script on wide screens without reduced motion; otherwise the poster shows. -->
+  <video class="hero-video" id="hero-video" autoplay muted loop playsinline preload="none" poster="assets/hero-loop-poster.jpg" aria-hidden="true"></video>
+  <div class="hero-shade"></div>
   <div class="wrap">
     <div>
       <p class="kicker"><b>Open data</b> An agentl example</p>
@@ -310,7 +321,6 @@ footer .links a:hover { color: var(--text); }
         <li>No API key</li>
       </ul>
     </div>
-    <img class="hero-cube" src="assets/agentl-cube-256.png" alt="" width="200" height="200">
   </div>
 </section>
 
@@ -682,6 +692,15 @@ footer .links a:hover { color: var(--text); }
       $("yaml").innerHTML = '<span class="ln"><span class="c"># pipeline.yaml is not deployed here. Read it on GitHub:</span></span>' +
         '<span class="ln"><span class="c"># https://github.com/arimayuji/agentl-examples/blob/main/fx/pipeline.yaml</span></span>';
     });
+
+  // Hero video: only on wide screens and without reduced motion.
+  (function () {
+    var v = $("hero-video"), mm = window.matchMedia;
+    if (!mm || mm("(prefers-reduced-motion: reduce)").matches || !mm("(min-width: 761px)").matches) return;
+    [["assets/hero-loop.webm", "video/webm"], ["assets/hero-loop.mp4", "video/mp4"]].forEach(function (x) { v.appendChild(el("source", { src: x[0], type: x[1] })); });
+    v.load();
+    var p = v.play(); if (p && p.catch) p.catch(function () { /* poster stays */ });
+  })();
 
   // Copy buttons
   Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (b) {
