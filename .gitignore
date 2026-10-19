@@ -1,0 +1,17 @@
+# agentl run store (if_changed validators, check baselines, run history)
+.agentl/
+# Pipeline outputs. fx/site/data is committed as a small seed so the site works before the
+# first run; CI regenerates it on every run.
+fx/data/
+*.sqlite
+*.sqlite-journal
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+# Local secrets and tooling
+.env
+.dev.vars
+.wrangler/
+node_modules/
+.DS_Store
