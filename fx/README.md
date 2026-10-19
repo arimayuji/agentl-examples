@@ -2,6 +2,10 @@
 
 Live: https://fx.agentl.com.br
 
+A useful public dataset and a showcase for [agentl](https://agentl.com.br): the page shows the
+rates, the exact `pipeline.yaml` that produced them (with notes on the agentl features it uses) and
+the status of the last run.
+
 Every working day the European Central Bank publishes euro foreign-exchange reference rates for
 about 30 currencies. This project fetches them with [agentl](https://agentl.com.br), checks them,
 keeps a history in SQLite and publishes a static dashboard: a currency picker (USD by default), a
@@ -18,7 +22,9 @@ backfill, [`eurofxref-hist-90d.xml`](https://www.ecb.europa.eu/stats/eurofxref/e
 | `pipeline.yaml` | The agentl pipeline |
 | `steps.py` | Two `fn:` steps: parse the ECB XML, shape the dashboard JSON |
 | `run.py` | Runs the pipeline with `agentl.run` and writes `site/data/status.json` from the run result |
-| `site/index.html` | The dashboard: static, vanilla JS, Chart.js 4.4.1 from jsDelivr (pinned, with SRI) |
+| `site/index.html` | The page: static, no build step, vanilla JS, Chart.js 4.4.1 from jsDelivr (pinned, with SRI), Inter and JetBrains Mono from Google Fonts. Shows the rates, the pipeline (fetched from `site/pipeline.yaml`, highlighted in place) and the run status |
+| `site/assets/` | agentl logo, wordmarks, favicon, animated logo loop and the Open Graph image `og.png` |
+| `og/` | `og.html`, the template for `og.png`, and `render.py`, which renders it with Playwright |
 | `site/data/` | `rates.json` and `status.json`. A seed is committed so the site works before the first run |
 
 ## The pipeline
@@ -37,7 +43,8 @@ backfill, [`eurofxref-hist-90d.xml`](https://www.ecb.europa.eu/stats/eurofxref/e
 6. `recent` -> `site` -> `export`: the last 90 days per currency to `site/data/rates.json`.
 
 `run.py` then writes `status.json`: last run time, outcome, rows read and changed, the result of
-each check rule, and duration.
+each check rule, and duration. It also copies `pipeline.yaml` to `site/pipeline.yaml` (ignored by
+git), so the page shows the real file.
 
 ## Run locally
 
@@ -55,7 +62,7 @@ to start over (or `agentl state reset` to forget only the `if_changed` validator
 
 `.github/workflows/fx.yml` runs on weekdays at 15:30 UTC, after the ECB publishes (about 16:00
 CET), and on demand. It restores `.agentl/`, `data/` and `site/data/` from the Actions cache, runs
-`python run.py` and deploys `fx/site` to the Cloudflare Pages project `agentl-fx` with
+`python run.py`, copies `pipeline.yaml` into `site/` and deploys `fx/site` to the Cloudflare Pages project `agentl-fx` with
 `cloudflare/wrangler-action`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit)
 and `CLOUDFLARE_ACCOUNT_ID`.
 

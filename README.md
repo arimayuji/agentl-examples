@@ -2,7 +2,8 @@
 
 Small, real projects built with [agentl](https://agentl.com.br), the YAML ETL library for Python.
 Each one runs on a schedule in GitHub Actions and publishes a static site, so you can see the
-pipeline, its checks and its output side by side.
+pipeline, its checks and its output side by side: useful public data that anyone can use, and a
+working showcase of what agentl does. Each site shows the pipeline file that built it.
 
 | Project | Live | What it does | agentl features |
 | --- | --- | --- | --- |
