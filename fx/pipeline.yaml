@@ -1,0 +1,89 @@
+# Euro foreign-exchange reference rates from the European Central Bank (no API key).
+#   cd fx && agentl run pipeline.yaml        (or: python run.py, which also writes status.json)
+name: fx
+steps:
+  # Today's rates. Downloaded only when the file changed since the last successful run;
+  # otherwise the run ends with outcome `no_change` and nothing is rewritten.
+  - id: daily
+    use: http.get
+    with:
+      url: ${FX_DAILY_URL:-https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml}
+      if_changed: { by: [etag, last_modified] }
+      on_unchanged: stop
+      retries: 3
+
+  # The last 90 days, to backfill a fresh history (and to fill any missed day).
+  - id: backfill
+    use: http.get
+    with:
+      url: ${FX_HISTORY_URL:-https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml}
+      if_changed: { by: [etag, last_modified] }
+      on_unchanged: continue_empty
+      retries: 3
+
+  - id: bodies
+    use: concat
+    input: [daily, backfill]
+
+  - id: parse
+    fn: steps:parse_ecb
+    input: bodies
+
+  # The daily file repeats the newest day of the 90-day file.
+  - id: rates
+    use: dedupe
+    input: parse
+    with: { on: [date, currency] }
+
+  - id: flags
+    use: compute
+    input: rates
+    with:
+      fields:
+        pair: "concat(date, '/', currency)"
+        currency_ok: "regex(currency, '^[A-Z]{3}$') != null"
+        rate_ok: "rate > 0"
+
+  - id: verify
+    check: flags
+    expect:
+      rows: { min: 20 }
+      not_null: [date, currency, rate]
+      unique: pair            # one row per (date, currency)
+      accepted: { currency_ok: [true], rate_ok: [true] }
+      fresh: { field: date, max_age: 7d }
+    on_fail: stop
+
+  - id: clean
+    use: select
+    input: verify
+    with: { fields: [date, currency, rate] }
+
+  # History: one row per (date, currency); the changeset reports inserted / updated / unchanged.
+  - id: history
+    use: sqlite.write
+    input: clean
+    with:
+      db: ${FX_DB:-data/fx.sqlite}
+      table: rates
+      mode: changeset
+      key: [date, currency]
+
+  - id: recent
+    use: sqlite.read
+    after: history
+    with:
+      db: ${FX_DB:-data/fx.sqlite}
+      query: >
+        select date, currency, rate from rates
+        where date > date((select max(date) from rates), '-90 days')
+
+  - id: site
+    fn: steps:to_site
+    input: recent
+    with: { days: 90 }
+
+  - id: export
+    use: json.write
+    input: site
+    with: { path: site/data/rates.json }
