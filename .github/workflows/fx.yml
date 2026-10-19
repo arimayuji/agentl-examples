@@ -59,4 +59,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Creates the Pages project on the first deploy; later runs see it exists and go on.
+          preCommands: wrangler pages project create agentl-fx --production-branch=main || true
           command: pages deploy fx/site --project-name=agentl-fx --branch=main
