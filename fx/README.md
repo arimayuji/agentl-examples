@@ -23,7 +23,7 @@ backfill, [`eurofxref-hist-90d.xml`](https://www.ecb.europa.eu/stats/eurofxref/e
 | `steps.py` | Two `fn:` steps: parse the ECB XML, shape the dashboard JSON |
 | `run.py` | Runs the pipeline with `agentl.run` and writes `site/data/status.json` from the run result |
 | `site/index.html` | The page: static, no build step, vanilla JS, Chart.js 4.4.1 from jsDelivr (pinned, with SRI), Inter and JetBrains Mono from Google Fonts. Shows the rates, the pipeline (fetched from `site/pipeline.yaml`, highlighted in place) and the run status |
-| `site/assets/` | agentl logo, wordmarks, favicon, animated logo loop and the Open Graph image `og.png` |
+| `site/assets/` | agentl logo, wordmarks, favicon, animated logo loop, the hero background video `hero-loop.mp4`/`.webm` with its poster (rendered with Remotion in agentl-media, composition `HeroLoop`) and the Open Graph image `og.png` |
 | `og/` | `og.html`, the template for `og.png`, and `render.py`, which renders it with Playwright |
 | `site/data/` | `rates.json` and `status.json`. A seed is committed so the site works before the first run |
 
