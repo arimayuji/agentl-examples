@@ -20,3 +20,7 @@ node_modules/
 # quakes: same layout as fx
 quakes/data/
 quakes/site/pipeline.yaml
+# spending: same layout, plus the eval report written in CI
+spending/data/
+spending/site/pipeline.yaml
+spending/eval.json

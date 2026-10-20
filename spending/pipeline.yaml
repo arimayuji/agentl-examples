@@ -1,0 +1,142 @@
+# New US federal contract awards from USAspending.gov (public domain, no API key), each explained
+# in one plain-English line by a small LLM.
+#   cd spending && python run.py      (or: agentl run pipeline.yaml)
+name: spending
+
+# Per-run limits for a daily run: a $5 monthly cap over 31 days is $0.16. run.py replaces
+# max_usd with SPENDING_BUDGET_USD / 31, capped at what is left of the cap this month.
+budget:
+  max_usd: 0.16
+  max_calls: 400
+
+llm:
+  default:
+    provider: openrouter   # reads OPENROUTER_API_KEY; cost as OpenRouter reports it
+    model: ${SPENDING_MODEL:-openai/gpt-4.1-nano}
+    max_tokens: 300
+    rate_limit: { rpm: 60 }
+    options: { temperature: 0, app_url: "https://spending.agentl.com.br", app_name: agentl-spending }
+
+steps:
+  # USAspending loads new data once a day. When the load date is the same as on the last good run,
+  # the run ends with outcome `no_change`: nothing is fetched, asked or rewritten.
+  - id: stamp
+    use: http.get
+    with:
+      url: https://api.usaspending.gov/api/v2/awards/last_updated/
+      if_changed: { by: [etag, last_modified] }   # no validators here, so the body hash decides
+      on_unchanged: stop
+      retries: 3
+
+  # The pages to request: the last 7 days up to the load date. At most 3 x 100 awards a run.
+  - id: window
+    fn: steps:window
+    input: stamp
+    with: { days: 7, pages: 3 }
+
+  # New contracts (award types A, B, C, D) above $1M, largest first. One request per page.
+  - id: awards
+    use: http.post   # agentl: disable=AL002 (a search request, not a delivery)
+    input: window
+    with:
+      url: https://api.usaspending.gov/api/v2/search/spending_by_award/
+      json:
+        filters:
+          award_type_codes: [A, B, C, D]
+          time_period: [{ start_date: "{start}", end_date: "{end}", date_type: new_awards_only }]
+          award_amounts: [{ lower_bound: 1000000 }]
+        fields: [Award ID, Recipient Name, Award Amount, Description, Awarding Agency,
+                 Awarding Sub Agency, Start Date, NAICS, PSC]
+        sort: Award Amount
+        order: desc
+        limit: 100
+        page: "{page}"
+      items: results
+      concurrency: 1
+      retries: 3
+
+  - id: rows
+    fn: steps:flatten
+    input: awards
+
+  - id: verify
+    check: rows
+    expect:
+      rows: { min: 1 }
+      not_null: [award_id, amount, agency, recipient, url]
+      unique: award_id
+      range: { amount: { min: 0.01 } }
+    severity:
+      rows: warn              # a quiet week is possible
+      not_null: reject        # a row without its id, amount or agency is dropped alone
+      unique: reject
+      range: reject
+    on_fail: stop
+
+  # Only the fields the classifier reads: no amount and no dates, so the cache key of an award
+  # does not change when its amount is revised.
+  - id: brief
+    fn: steps:for_agent
+    input: verify
+
+  - id: classify
+    input: brief
+    agent: >
+      You classify US federal contract awards for a public website. From the description, the
+      awarding agency and sub agency, the product or service (PSC) and the industry (NAICS),
+      answer:
+      category: exactly one of defense, health, IT, construction, research, energy, transport,
+      education, other. Construction includes renovation, repair and design of buildings.
+      Medical supplies and care, including for veterans, are health. Bullion, janitorial,
+      furniture and generic support services are other.
+      plain_summary: one plain-English sentence, at most 25 words, that a taxpayer understands.
+      Expand acronyms you are sure of; do not invent facts that are not in the record.
+      clarity: clear if the description alone says what is being bought, opaque if it is a code,
+      a contract action (option, modification, report) or too short to tell.
+      confidence: from 0 to 1, how sure you are of the category.
+    output:
+      category: str
+      plain_summary: str
+      clarity: str
+      confidence: float
+    rules:
+      - fn: steps:no_llm          # answers only with classification off (no key, cap spent)
+    review: { below: 0.6, hold: false }   # low confidence: shown, marked "needs review"
+    pii: mask                     # recipients can be people: mask e-mails, phones, names
+    golden: golden/awards.jsonl   # agentl eval: accuracy and cost per right answer
+    concurrency: 4
+
+  - id: labels
+    check: classify
+    expect:
+      accepted:
+        category: [defense, health, IT, construction, research, energy, transport, education, other, unclassified]
+        clarity: [clear, opaque, unknown]
+      range: { confidence: { min: 0, max: 1 } }
+    severity:
+      accepted: warn          # an odd label is shown as "other", not dropped
+      range: warn
+    on_fail: warn
+
+  - id: classified
+    fn: steps:merge
+    input: [verify, labels]
+
+  # History keyed on the award id: inserted (new awards), updated (amount or label changed).
+  - id: history
+    use: sqlite.write
+    input: classified
+    with:
+      db: ${SPENDING_DB:-data/spending.sqlite}
+      table: awards
+      mode: changeset
+      key: award_id
+
+  - id: site
+    fn: steps:to_site
+    input: classified
+
+  - id: export
+    use: json.write
+    input: site
+    with: { path: site/data/awards.json }
