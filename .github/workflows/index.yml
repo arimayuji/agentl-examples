@@ -1,0 +1,35 @@
+name: index
+
+# Deploys the examples index (examples.agentl.com.br). The page is static: it reads each
+# example's data/status.json in the browser, so it only needs a deploy when index/ changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: index
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Creates the Pages project on the first deploy; later runs see it exists and go on.
+          preCommands: wrangler pages project create agentl-examples-index --production-branch=main || true
+          command: pages deploy index/site --project-name=agentl-examples-index --branch=main

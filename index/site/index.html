@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentl examples · live data pipelines</title>
+<meta name="description" content="Live public data pipelines built with agentl, the YAML ETL library for Python. Each one is a single YAML file you can read, run and copy.">
+<link rel="canonical" href="https://examples.agentl.com.br/">
+<meta name="theme-color" content="#0070c9">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/agentl-cube-256.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="assets/agentl-icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="agentl examples">
+<meta property="og:url" content="https://examples.agentl.com.br/">
+<meta property="og:title" content="agentl examples: live public data pipelines">
+<meta property="og:description" content="Live public data pipelines, each one a single YAML file. Open data, open code.">
+<meta property="og:image" content="https://examples.agentl.com.br/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="agentl cube logo and the title Each one a single YAML file">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@useagentl">
+<meta name="twitter:title" content="agentl examples: live public data pipelines">
+<meta name="twitter:description" content="Live public data pipelines, each one a single YAML file.">
+<meta name="twitter:image" content="https://examples.agentl.com.br/assets/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<script>
+/* Set the theme before paint to avoid a flash. */
+try { var t = localStorage.getItem("examples-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+<style>
+:root {
+  --blue: #0070c9; --blue-ink: #005ea8; --deep: #003f7d; --sun: #ffd400; --navy: #0b1b2b;
+  --bg: #ffffff; --bg-2: #f5f8fb; --surface: #ffffff; --text: #0b1b2b; --muted: #4d5e70; --faint: #7a8896;
+  --line: #e2e9f0; --link: #005ea8; --glow: rgba(11,27,43,.08);
+  --up: #1a7f37; --down: #c62828; --chart: #0070c9; --chart-fill: rgba(0,112,201,.10); --grid: #e9eff5;
+  --shade: radial-gradient(circle at 100% 0, rgba(0,94,168,.9) 0 2.2em, transparent 2.25em);
+  --radius: 14px;
+  --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+    --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+    --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+  --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+  --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--link); }
+code, pre { font-family: var(--mono); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; position: relative; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+/* ------------------------------------------------ top bar */
+.top { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
+.brand .cube { width: 36px; height: 36px; }
+.brand .word { height: 22px; width: auto; margin-top: 3px; }
+.word-dark { display: none; }
+:root[data-theme="dark"] .word-light { display: none; } :root[data-theme="dark"] .word-dark { display: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .word-light { display: none; } :root:not([data-theme="light"]) .word-dark { display: block; } }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px 4px 6px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--text); text-decoration: none; white-space: nowrap; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sun) 30%, transparent); }
+.nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.nav a.l { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; padding: 6px 10px; border-radius: 8px; }
+.nav a.l:hover { color: var(--text); background: var(--bg-2); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 11px; font: 600 14px var(--sans);
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); border-color: var(--faint); }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn-primary { background: var(--shade), var(--blue); color: #fff; border-color: transparent; }
+.btn-primary:hover { box-shadow: 4px 4px 0 var(--sun); border-color: transparent; }
+.btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
+.icon-btn { width: 36px; height: 36px; padding: 0; justify-content: center; }
+@media (max-width: 860px) { .nav a.l { display: none; } }
+@media (max-width: 420px) { .brand .word { display: none !important; } }
+@media (max-width: 420px) { .star-label { display: none; } }
+
+/* ------------------------------------------------ hero */
+.hero { position: relative; overflow: hidden; background: var(--blue); color: #fff; padding: 64px 0 120px; }
+.hero::before { content: ""; position: absolute; top: -260px; right: -200px; width: 640px; height: 640px; border-radius: 50%; background: var(--deep); opacity: .45; }
+.hero .cube-art { position: absolute; right: 7%; top: 50%; width: 260px; height: 260px; transform: translateY(-58%); filter: drop-shadow(0 30px 50px rgba(0,30,70,.4)); }
+.hero .wrap > div { max-width: 640px; position: relative; }
+.kicker { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.kicker b { background: var(--sun); color: var(--navy); padding: 2px 8px; border-radius: 99px; letter-spacing: .06em; }
+.hero h1 { margin: 0 0 14px; font-size: clamp(34px, 5.6vw, 58px); line-height: 1.04; font-weight: 800; letter-spacing: -.035em; }
+.hero h1 .dot { color: var(--sun); }
+.lede { margin: 0 0 26px; font-size: 18px; color: rgba(255,255,255,.9); }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero .btn { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff; }
+.hero .btn:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.6); }
+.hero .btn-white { background: #fff; color: var(--navy); border-color: #fff; }
+.hero .btn-white:hover { background: #fff; box-shadow: 4px 4px 0 var(--sun); }
+@media (max-width: 900px) { .hero .cube-art { display: none; } }
+@media (max-width: 760px) { .hero { padding: 40px 0 96px; } .lede { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .btn, .ex { transition: none; } html { scroll-behavior: auto; } }
+
+/* ------------------------------------------------ example cards */
+main { position: relative; margin-top: -72px; }
+.examples { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 860px) { .examples { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 18px 50px var(--glow); overflow: hidden; display: flex; flex-direction: column; min-width: 0; transition: border-color .15s ease, transform .15s ease; }
+.ex:hover { border-color: color-mix(in srgb, var(--blue) 55%, var(--line)); }
+.shot { display: block; position: relative; aspect-ratio: 1200 / 750; background: var(--bg-2); border-bottom: 1px solid var(--line); overflow: hidden; }
+.shot img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+.ex:hover .shot img { transform: scale(1.02); }
+.shot .url { position: absolute; left: 12px; bottom: 12px; font: 600 12px var(--mono); background: rgba(11,27,43,.82); color: #fff; padding: 5px 10px; border-radius: 8px; }
+.ex-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.ex-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ex h2 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+.ex h2 a { color: inherit; text-decoration: none; }
+.ex h2 a:hover { color: var(--link); }
+.ex p.d { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.meta { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 14px; }
+.meta > li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+.meta > li > span:first-child { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding-top: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.chips li { font: 500 12px var(--mono); padding: 3px 9px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); color: var(--text); }
+.ex-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--up); background: color-mix(in srgb, var(--up) 13%, transparent); }
+.pill.bad { color: var(--down); background: color-mix(in srgb, var(--down) 13%, transparent); }
+.pill.idle { color: var(--link); background: color-mix(in srgb, var(--blue) 13%, transparent); }
+.pill.warn { color: #9a6700; background: color-mix(in srgb, var(--sun) 26%, transparent); }
+:root[data-theme="dark"] .pill.warn { color: var(--sun); background: rgba(255,212,0,.12); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.warn { color: var(--sun); background: rgba(255,212,0,.12); } }
+.status-line { font-size: 12.5px; color: var(--muted); margin: -6px 0 0; }
+@media (max-width: 480px) { .meta > li { grid-template-columns: minmax(0, 1fr); gap: 4px; } .ex-top { flex-wrap: wrap; } }
+
+/* ------------------------------------------------ sections */
+.section { padding: 72px 0 0; }
+.s-kicker { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--link); }
+.section h2.h { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 10px; }
+.section .sub { color: var(--muted); max-width: 640px; margin: 0 0 24px; font-size: 16px; }
+.cta { position: relative; overflow: hidden; background: var(--navy); color: #eaf2fa; border-radius: 22px; padding: 40px; }
+.cta::before { content: ""; position: absolute; top: -220px; right: -220px; width: 460px; height: 460px; border-radius: 50%; background: var(--blue); opacity: .35; }
+.cta > * { position: relative; }
+.cta h2 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 10px; }
+.cta p { color: #a8b8c8; margin: 0 0 20px; max-width: 600px; }
+.cta h3 { font-size: 15px; margin: 22px 0 8px; color: #fff; }
+.cmd { display: flex; align-items: center; gap: 10px; background: #0e1e2e; border: 1px solid #23364b; border-radius: 12px; padding: 6px 6px 6px 14px; margin-bottom: 12px; max-width: 680px; }
+.cmd code { flex: 1; min-width: 0; font-size: 14px; color: #fff; white-space: pre; overflow-x: auto; }
+.cmd code .d { color: var(--sun); user-select: none; }
+.cmd.multi { align-items: flex-start; padding-top: 12px; }
+.cmd.multi code { line-height: 1.8; padding-bottom: 6px; font-size: 13px; }
+.copy { font: 600 12px var(--sans); padding: 8px 12px; border-radius: 8px; cursor: pointer; border: 1px solid #2b4259; background: #132538; color: #cfe0f0; flex-shrink: 0; }
+.copy:hover { color: #fff; border-color: #5cb8ff; }
+.copy.done { background: var(--sun); color: var(--navy); border-color: var(--sun); }
+.cta .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.cta .btn { background: transparent; color: #fff; border-color: #2b4259; }
+.cta .btn:hover { border-color: #5cb8ff; }
+.cta .btn-primary { background: var(--shade), var(--blue); border-color: transparent; }
+@media (max-width: 760px) { .cta { padding: 26px 18px; } }
+.suggest { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 32px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; position: relative; overflow: hidden; }
+.suggest::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--blue), var(--deep) 60%, var(--sun)); }
+.suggest h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.suggest p { margin: 0; color: var(--muted); max-width: 620px; }
+.suggest .row { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 760px) { .suggest { grid-template-columns: minmax(0, 1fr); padding: 22px 18px; } }
+
+/* ------------------------------------------------ footer */
+footer { border-top: 1px solid var(--line); background: var(--bg-2); padding: 36px 0 44px; margin-top: 72px; font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; justify-content: space-between; }
+footer .fb { display: flex; gap: 12px; align-items: center; }
+footer .fb img { width: 44px; height: 44px; }
+footer .fb p { margin: 0; }
+footer .fb b { color: var(--text); }
+footer .links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+footer .links a { color: var(--muted); text-decoration: none; }
+footer .links a:hover { color: var(--text); }
+.social { display: flex; gap: 8px; }
+.social a { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.social a:hover { border-color: var(--blue); color: var(--link); }
+.social svg { width: 17px; height: 17px; }
+.fine { flex-basis: 100%; font-size: 12.5px; color: var(--faint); margin: 0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://agentl.com.br" aria-label="agentl home">
+      <img class="cube" src="assets/agentl-cube-256.png" alt="" width="36" height="36">
+      <img class="word word-light" src="assets/agentl-wordmark-light.svg" alt="agentl" width="69" height="22">
+      <img class="word word-dark" src="assets/agentl-wordmark-dark.svg" alt="agentl" width="69" height="22">
+    </a>
+    <a class="badge" href="#examples">Examples</a>
+    <nav class="nav" aria-label="Main">
+      <a class="l" href="https://agentl.com.br">Docs</a>
+      <a class="l" href="#run">Run one</a>
+      <a class="l" href="https://github.com/arimayuji/agentl-examples">Source</a>
+      <a class="btn btn-sm" href="https://github.com/arimayuji/agentl" aria-label="Star agentl on GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="star-label">Star on GitHub</span>
+      </a>
+      <button class="btn btn-sm icon-btn" id="theme" type="button" aria-label="Theme: auto" title="Theme: auto"></button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <img class="cube-art" src="assets/agentl-cube-256.png" alt="" width="260" height="260">
+  <div class="wrap">
+    <div>
+      <p class="kicker"><b>Open data</b> Built with agentl</p>
+      <h1>agentl examples<span class="dot">.</span></h1>
+      <p class="lede">Live public data pipelines, each one a single YAML file. Open the site, read the pipeline, run it yourself.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-white" href="https://agentl.com.br">Read the docs</a>
+        <a class="btn" href="https://github.com/arimayuji/agentl"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap">
+    <div class="examples" id="examples">
+      <article class="ex" data-status="https://fx.agentl.com.br/data/status.json https://agentl-fx.pages.dev/data/status.json" data-pipeline="fx" data-stale-h="100">
+        <a class="shot" href="https://fx.agentl.com.br" tabindex="-1" aria-hidden="true">
+          <picture><source srcset="assets/fx.webp" type="image/webp"><img src="assets/fx.jpg" alt="" width="1200" height="750" loading="lazy"></picture>
+          <span class="url">fx.agentl.com.br</span>
+        </a>
+        <div class="ex-body">
+          <div class="ex-top">
+            <div>
+              <h2><a href="https://fx.agentl.com.br">Euro FX rates</a></h2>
+              <p class="d">Daily euro reference rates for about 30 currencies, with a 90-day chart.</p>
+            </div>
+            <span class="pill idle" data-role="pill">Checking</span>
+          </div>
+          <p class="status-line" data-role="line">Reading the last run from status.json</p>
+          <ul class="meta">
+            <li><span>Source</span><span><a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html">European Central Bank</a></span></li>
+            <li><span>Updates</span><span>Weekdays at 15:30 UTC</span></li>
+            <li><span>Features</span><ul class="chips"><li>http.get if_changed</li><li>fn: steps</li><li>dedupe</li><li>check</li><li>sqlite changeset</li><li>json.write</li><li>agentl.run API</li></ul></li>
+          </ul>
+          <div class="ex-links">
+            <a class="btn btn-primary btn-sm" href="https://fx.agentl.com.br">Open live site</a>
+            <a class="btn btn-sm" href="https://github.com/arimayuji/agentl-examples/tree/main/fx"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> Source</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="ex" data-status="https://quakes.agentl.com.br/data/status.json https://agentl-quakes.pages.dev/data/status.json" data-pipeline="quakes" data-stale-h="2">
+        <a class="shot" href="https://quakes.agentl.com.br" tabindex="-1" aria-hidden="true">
+          <picture><source srcset="assets/quakes.webp" type="image/webp"><img src="assets/quakes.jpg" alt="" width="1200" height="750" loading="lazy"></picture>
+          <span class="url">quakes.agentl.com.br</span>
+        </a>
+        <div class="ex-body">
+          <div class="ex-top">
+            <div>
+              <h2><a href="https://quakes.agentl.com.br">Live earthquakes</a></h2>
+              <p class="d">Every earthquake the USGS reports worldwide, on one map, with magnitude revisions.</p>
+            </div>
+            <span class="pill idle" data-role="pill">Checking</span>
+          </div>
+          <p class="status-line" data-role="line">Reading the last run from status.json</p>
+          <ul class="meta">
+            <li><span>Source</span><span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php">USGS earthquake feeds</a></span></li>
+            <li><span>Updates</span><span>Every 15 minutes</span></li>
+            <li><span>Features</span><ul class="chips"><li>http.get if_changed</li><li>items</li><li>check severity</li><li>row rules</li><li>select</li><li>sqlite changeset</li><li>after:</li><li>json.write</li></ul></li>
+          </ul>
+          <div class="ex-links">
+            <a class="btn btn-primary btn-sm" href="https://quakes.agentl.com.br">Open live site</a>
+            <a class="btn btn-sm" href="https://github.com/arimayuji/agentl-examples/tree/main/quakes"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> Source</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <section class="section" id="run" aria-labelledby="run-title">
+    <div class="wrap">
+      <div class="cta">
+        <h2 id="run-title">Run any example yourself.</h2>
+        <p>Python 3.10 or newer. No API keys: every source is public. Each folder has a <code>pipeline.yaml</code>, a <code>run.py</code> and the static site.</p>
+        <div class="cmd"><code><span class="d">$ </span>pip install agentl-etl</code><button class="copy" type="button" data-copy="pip install agentl-etl">Copy</button></div>
+        <h3>Clone and run one</h3>
+        <div class="cmd multi"><code id="cmds"><span class="d">$ </span>git clone https://github.com/arimayuji/agentl-examples
+<span class="d">$ </span>cd agentl-examples/quakes        # or: cd agentl-examples/fx
+<span class="d">$ </span>python run.py &amp;&amp; python -m http.server -d site 8000</code><button class="copy" type="button" data-copy-from="cmds">Copy</button></div>
+        <div class="row">
+          <a class="btn btn-primary" href="https://agentl.com.br/getting-started/">Get started</a>
+          <a class="btn" href="https://github.com/arimayuji/agentl-examples">All examples on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="suggest" aria-labelledby="suggest-title">
+    <div class="wrap">
+      <div class="suggest">
+        <div>
+          <h2 id="suggest-title">Suggest an example</h2>
+          <p>Know a public dataset that deserves a live page? Open an issue with the source, how often it changes and what you would want to see.</p>
+        </div>
+        <div class="row">
+          <a class="btn btn-primary" href="https://github.com/arimayuji/agentl-examples/issues/new?labels=example-idea&amp;title=Example%20idea%3A%20">Suggest one</a>
+          <a class="btn" href="https://github.com/arimayuji/agentl-examples/issues">See ideas</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <div class="fb">
+      <img src="assets/agentl-cube-256.png" alt="agentl" width="44" height="44">
+      <p><b>Built with <a href="https://agentl.com.br">agentl</a></b><br>Examples and sites: <a href="https://github.com/arimayuji/agentl-examples/blob/main/LICENSE">MIT</a>. Data belongs to each source.</p>
+    </div>
+    <nav class="links" aria-label="Footer">
+      <a href="https://agentl.com.br">Docs</a>
+      <a href="https://github.com/arimayuji/agentl">agentl on GitHub</a>
+      <a href="https://github.com/arimayuji/agentl-examples/tree/main/index">Source of this page</a>
+    </nav>
+    <div class="social">
+      <a href="https://x.com/useagentl" aria-label="agentl on X (@useagentl)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://instagram.com/useagentl" aria-label="agentl on Instagram (@useagentl)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://github.com/arimayuji/agentl" aria-label="agentl on GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+    <p class="fine">Follow <a href="https://x.com/useagentl">@useagentl</a> on X and <a href="https://instagram.com/useagentl">Instagram</a>.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* no storage */ } }
+  };
+  // Theme: auto -> light -> dark
+  var ICONS = {
+    auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+  };
+  var modes = ["auto", "light", "dark"];
+  function applyTheme(m) {
+    if (m === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", m);
+    var b = $("theme"); b.innerHTML = ICONS[m]; b.setAttribute("aria-label", "Theme: " + m); b.title = "Theme: " + m;
+  }
+  var mode = store.get("examples-theme") || "auto";
+  if (modes.indexOf(mode) < 0) mode = "auto";
+  applyTheme(mode);
+  $("theme").addEventListener("click", function () {
+    mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+    store.set("examples-theme", mode); applyTheme(mode);
+  });
+
+  // Live status: each site publishes data/status.json (Cloudflare Pages sends
+  // Access-Control-Allow-Origin: *). The custom domain is tried first, then the
+  // pages.dev address; a reply is used only if its "pipeline" matches the card.
+  function ago(ms) {
+    var m = Math.max(0, Math.round(ms / 60000));
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    var h = Math.floor(m / 60); if (h < 48) return h + " h ago";
+    return Math.round(h / 24) + " days ago";
+  }
+  function fetchStatus(urls, name) {
+    if (!urls.length) return Promise.reject(new Error("unavailable"));
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 8000) : null;
+    return fetch(urls[0], { cache: "no-cache", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (st) { if (!st || st.pipeline !== name) throw new Error("wrong pipeline"); return st; })
+      .catch(function () { return fetchStatus(urls.slice(1), name); })
+      .finally(function () { if (timer) clearTimeout(timer); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".ex[data-status]"), function (card) {
+    var pill = card.querySelector('[data-role="pill"]'), line = card.querySelector('[data-role="line"]');
+    var staleH = parseFloat(card.dataset.staleH) || 24;
+    fetchStatus(card.dataset.status.split(" "), card.dataset.pipeline).then(function (st) {
+      var out = st.outcome || "unknown";
+      var label = { success: "Healthy", no_change: "Up to date", failed: "Last run failed" }[out] || out.replace(/_/g, " ");
+      var cls = out === "success" || out === "no_change" ? "ok" : out === "failed" ? "bad" : "idle";
+      var age = st.finished_at ? Date.now() - new Date(st.finished_at).getTime() : null;
+      if (cls === "ok" && age != null && age > staleH * 36e5) { cls = "warn"; label = "Stale"; }
+      pill.className = "pill " + cls; pill.textContent = label;
+      var bits = [];
+      bits.push("Last run " + (age != null ? ago(age) : "unknown") + ": " + out.replace(/_/g, " "));
+      if (st.last_success_at && out !== "success") bits.push("last success " + ago(Date.now() - new Date(st.last_success_at).getTime()));
+      if (st.agentl_version) bits.push("agentl " + st.agentl_version);
+      line.textContent = bits.join(" · ");
+      if (st.finished_at) line.title = "Finished " + st.finished_at;
+    }).catch(function () {
+      pill.className = "pill idle"; pill.textContent = "Live";
+      line.textContent = "Status not reachable right now. Open the site for the latest run.";
+    });
+  });
+
+  // Copy buttons
+  Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (b) {
+    b.addEventListener("click", function () {
+      var text = b.dataset.copy || $(b.dataset.copyFrom).textContent.replace(/^\$ /gm, "").replace(/\s+# .*$/gm, "");
+      var done = function () { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>
