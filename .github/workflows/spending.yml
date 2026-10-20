@@ -39,7 +39,7 @@ jobs:
       # used here are not in the 0.12.0 release on PyPI yet.
       - name: Install agentl
         id: deps
-        run: pip install "agentl-etl @ git+https://github.com/arimayuji/agentl@b83f2bbfdd11fa9bb16fa045f0bfd67e93d7a504"
+        run: pip install "agentl-etl @ git+https://github.com/arimayuji/agentl@df37a40c349a74833de545007fe96ee8ca90a8ce"
 
       # The run store (if_changed validators, the per-award LLM cache), the history database and
       # the last exported data, including status.json with this month's LLM spend.
