@@ -83,7 +83,7 @@ This example uses features of agentl that are newer than the 0.12.0 release (the
 main:
 
 ```bash
-pip install "agentl-etl @ git+https://github.com/arimayuji/agentl@b83f2bbfdd11fa9bb16fa045f0bfd67e93d7a504"
+pip install "agentl-etl @ git+https://github.com/arimayuji/agentl@df37a40c349a74833de545007fe96ee8ca90a8ce"
 agentl lint pipeline.yaml
 export OPENROUTER_API_KEY=...       # optional
 agentl eval pipeline.yaml --json > eval.json   # optional, needs the key
