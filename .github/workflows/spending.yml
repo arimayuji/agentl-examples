@@ -68,6 +68,8 @@ jobs:
             exit 0
           fi
           agentl eval pipeline.yaml --json > eval.json
+          # One line per report and the first differences, so a bad run is readable in the log.
+          python -c "import json; [print(r['step'], r['right'], '/', r['records'], 'right, cost', r['cost_usd'], r['diffs'][:3]) for r in json.load(open('eval.json'))]"
 
       # Without the key, run.py publishes the awards unclassified instead of failing.
       - name: Run the pipeline
