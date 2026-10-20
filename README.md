@@ -8,6 +8,7 @@ working showcase of what agentl does. Each site shows the pipeline file that bui
 | Project | Live | What it does | agentl features |
 | --- | --- | --- | --- |
 | [`fx/`](fx/) | [fx.agentl.com.br](https://fx.agentl.com.br) | Euro foreign-exchange reference rates from the European Central Bank, with a 90-day chart and a pipeline status panel | `http.get` with `if_changed`, `fn:` steps, `concat`, `dedupe`, `compute`, `check` (rows, not_null, unique, accepted, fresh), `sqlite.write` with `mode: changeset`, `sqlite.read`, `json.write`, the Python `agentl.run` API with event listeners |
+| [`quakes/`](quakes/) | [quakes.agentl.com.br](https://quakes.agentl.com.br) | A live map of earthquakes worldwide from the USGS, refreshed every 15 minutes, with magnitude and period filters, the latest and largest quakes and a count of USGS revisions | `http.get` with `if_changed` and `items`, `fn:` steps, `concat`, `check` (rows, not_null, unique, range, accepted, fresh, per-rule `severity`, row `rules` with a `check.digest`), `select`, `sqlite.write` with `mode: changeset`, `after:`, `sqlite.read`, `json.write`, the Python `agentl.run` API |
 
 ## Run locally
 
@@ -16,7 +17,7 @@ Python 3.10 or newer.
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install agentl-etl
-cd fx
+cd fx                             # or: cd quakes
 agentl lint pipeline.yaml
 python run.py                     # runs the pipeline and writes site/data/status.json
 python -m http.server -d site 8000
