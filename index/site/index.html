@@ -287,6 +287,32 @@ footer .links a:hover { color: var(--text); }
           </div>
         </div>
       </article>
+
+      <article class="ex" data-status="https://spending.agentl.com.br/data/status.json https://agentl-spending.pages.dev/data/status.json" data-pipeline="spending" data-stale-h="50">
+        <a class="shot" href="https://spending.agentl.com.br" tabindex="-1" aria-hidden="true">
+          <picture><source srcset="assets/spending.webp" type="image/webp"><img src="assets/spending.jpg" alt="" width="1200" height="750" loading="lazy"></picture>
+          <span class="url">spending.agentl.com.br</span>
+        </a>
+        <div class="ex-body">
+          <div class="ex-top">
+            <div>
+              <h2><a href="https://spending.agentl.com.br">Federal spending</a></h2>
+              <p class="d">New US federal contracts over $1M, each explained in plain English by a small AI model, with its accuracy measured.</p>
+            </div>
+            <span class="pill idle" data-role="pill">Checking</span>
+          </div>
+          <p class="status-line" data-role="line">Reading the last run from status.json</p>
+          <ul class="meta">
+            <li><span>Source</span><span><a href="https://api.usaspending.gov">USAspending.gov API</a></span></li>
+            <li><span>Updates</span><span>Daily at 06:07 UTC</span></li>
+            <li><span>Features</span><ul class="chips"><li>http.post</li><li>if_changed</li><li>agent step</li><li>openrouter</li><li>cache</li><li>budget</li><li>review</li><li>pii mask</li><li>golden eval</li><li>sqlite changeset</li></ul></li>
+          </ul>
+          <div class="ex-links">
+            <a class="btn btn-primary btn-sm" href="https://spending.agentl.com.br">Open live site</a>
+            <a class="btn btn-sm" href="https://github.com/arimayuji/agentl-examples/tree/main/spending"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> Source</a>
+          </div>
+        </div>
+      </article>
     </div>
   </div>
 
@@ -294,11 +320,11 @@ footer .links a:hover { color: var(--text); }
     <div class="wrap">
       <div class="cta">
         <h2 id="run-title">Run any example yourself.</h2>
-        <p>Python 3.10 or newer. No API keys: every source is public. Each folder has a <code>pipeline.yaml</code>, a <code>run.py</code> and the static site.</p>
+        <p>Python 3.10 or newer. Every source is public and needs no key; the spending example uses an optional OpenRouter key for its summaries. Each folder has a <code>pipeline.yaml</code>, a <code>run.py</code> and the static site.</p>
         <div class="cmd"><code><span class="d">$ </span>pip install agentl-etl</code><button class="copy" type="button" data-copy="pip install agentl-etl">Copy</button></div>
         <h3>Clone and run one</h3>
         <div class="cmd multi"><code id="cmds"><span class="d">$ </span>git clone https://github.com/arimayuji/agentl-examples
-<span class="d">$ </span>cd agentl-examples/quakes        # or: cd agentl-examples/fx
+<span class="d">$ </span>cd agentl-examples/quakes        # or: fx, spending
 <span class="d">$ </span>python run.py &amp;&amp; python -m http.server -d site 8000</code><button class="copy" type="button" data-copy-from="cmds">Copy</button></div>
         <div class="row">
           <a class="btn btn-primary" href="https://agentl.com.br/getting-started/">Get started</a>
