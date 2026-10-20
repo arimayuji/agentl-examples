@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Federal Spending · built with agentl</title>
+<meta name="description" content="New US federal contracts above $1 million from USAspending.gov, each explained in one plain-English line. Fetched, checked, classified and published daily by one agentl YAML pipeline, with its AI accuracy measured on a hand-labelled golden set.">
+<link rel="canonical" href="https://spending.agentl.com.br/">
+<meta name="theme-color" content="#0070c9">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/agentl-cube-256.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="assets/agentl-icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="agentl examples">
+<meta property="og:url" content="https://spending.agentl.com.br/">
+<meta property="og:title" content="Where federal money went this week, built with agentl">
+<meta property="og:description" content="New US federal contracts from USAspending.gov, explained in plain English by one open-source agentl pipeline, with its AI accuracy and cost published.">
+<meta property="og:image" content="https://spending.agentl.com.br/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="agentl cube logo and the title Where federal money went, explained by one YAML file">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@useagentl">
+<meta name="twitter:title" content="Where federal money went this week, built with agentl">
+<meta name="twitter:description" content="New US federal contracts, explained in plain English by one open-source agentl pipeline.">
+<meta name="twitter:image" content="https://spending.agentl.com.br/assets/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<script>
+/* Set the theme before paint to avoid a flash. */
+try { var t = localStorage.getItem("spending-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+<style>
+:root {
+  --blue: #0070c9; --blue-ink: #005ea8; --deep: #003f7d; --sun: #ffd400; --navy: #0b1b2b;
+  --bg: #ffffff; --bg-2: #f5f8fb; --surface: #ffffff; --text: #0b1b2b; --muted: #4d5e70; --faint: #7a8896;
+  --line: #e2e9f0; --link: #005ea8; --glow: rgba(11,27,43,.08);
+  --up: #1a7f37; --down: #c62828; --chart: #0070c9; --chart-fill: rgba(0,112,201,.10); --grid: #e9eff5;
+  --shade: radial-gradient(circle at 100% 0, rgba(0,94,168,.9) 0 2.2em, transparent 2.25em);
+  --radius: 14px;
+  --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+    --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+    --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+  --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+  --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--link); }
+code, pre { font-family: var(--mono); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; position: relative; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+/* ------------------------------------------------ top bar */
+.top { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
+.brand .cube { width: 36px; height: 36px; }
+.brand .word { height: 22px; width: auto; margin-top: 3px; }
+.word-dark { display: none; }
+:root[data-theme="dark"] .word-light { display: none; } :root[data-theme="dark"] .word-dark { display: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .word-light { display: none; } :root:not([data-theme="light"]) .word-dark { display: block; } }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px 4px 6px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--text); text-decoration: none; white-space: nowrap; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sun) 30%, transparent); }
+.nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.nav a.l { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; padding: 6px 10px; border-radius: 8px; }
+.nav a.l:hover { color: var(--text); background: var(--bg-2); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 11px; font: 600 14px var(--sans);
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); border-color: var(--faint); }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn-primary { background: var(--shade), var(--blue); color: #fff; border-color: transparent; }
+.btn-primary:hover { box-shadow: 4px 4px 0 var(--sun); border-color: transparent; }
+.btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
+.icon-btn { width: 36px; height: 36px; padding: 0; justify-content: center; }
+@media (max-width: 860px) { .nav a.l { display: none; } }
+@media (max-width: 420px) { .brand .word { display: none !important; } }
+@media (max-width: 420px) { .star-label { display: none; } }
+
+/* ------------------------------------------------ hero */
+.hero { position: relative; overflow: hidden; background: var(--blue); color: #fff; padding: 56px 0 104px; }
+@media (max-width: 760px) { .hero { padding: 36px 0 92px; } }
+.hero .wrap { min-height: 360px; }
+.hero .wrap > div { max-width: 600px; }
+@media (min-width: 761px) { .hero .lede { max-width: 540px; } }
+.kicker { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.kicker b { background: var(--sun); color: var(--navy); padding: 2px 8px; border-radius: 99px; letter-spacing: .06em; }
+.hero h1 { margin: 0 0 14px; font-size: clamp(32px, 5.4vw, 56px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; max-width: 720px; }
+.hero h1 .dot { color: var(--sun); }
+.lede { margin: 0 0 24px; max-width: 600px; font-size: 17px; color: rgba(255,255,255,.88); }
+.lede code { background: rgba(255,255,255,.14); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero .btn { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff; }
+.hero .btn:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.6); }
+.hero .btn-white { background: #fff; color: var(--navy); border-color: #fff; }
+.hero .btn-white:hover { background: #fff; box-shadow: 4px 4px 0 var(--sun); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 26px 0 0; padding: 0; list-style: none; font-size: 13px; color: rgba(255,255,255,.8); }
+.facts b { color: #fff; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } html { scroll-behavior: auto; } }
+@media (max-width: 760px) { .hero { padding: 36px 0 92px; } .hero .wrap { min-height: 0; } }
+
+/* ------------------------------------------------ cards */
+main { position: relative; margin-top: -64px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: 0 18px 50px var(--glow); min-width: 0; }
+.grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 920px) { .grid.two { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); } }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.pair { font-size: 13px; color: var(--muted); margin: 0; }
+.big { font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.chg { font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 10px; font-size: 15px; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+label.pick { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+select { font: 500 15px var(--sans); color: var(--text); background-color: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 34px 9px 12px; min-width: 220px; max-width: 100%; appearance: none; text-transform: none; letter-spacing: 0;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.chart { position: relative; height: 320px; }
+@media (max-width: 600px) { .chart { height: 240px; } select { min-width: 0; width: 100%; } label.pick { width: 100%; } }
+.range { display: flex; gap: 8px 18px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.range b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+h2.t { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h2.t small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { position: sticky; top: 0; background: var(--surface); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: color-mix(in srgb, var(--blue) 7%, transparent); }
+tbody tr.sel { background: color-mix(in srgb, var(--sun) 20%, transparent); }
+:root[data-theme="dark"] tbody tr.sel { background: rgba(255,212,0,.10); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) tbody tr.sel { background: rgba(255,212,0,.10); } }
+td .name { color: var(--muted); font-size: 13px; margin-left: 8px; }
+@media (max-width: 600px) { td .name, th.opt, td.opt { display: none; } }
+.note { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.error { color: var(--down); }
+
+/* ------------------------------------------------ status panel */
+.status-card { display: flex; flex-direction: column; gap: 16px; position: relative; overflow: hidden; }
+.status-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--blue), var(--deep) 60%, var(--sun)); }
+.st-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.st-head h2 { margin: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 11px; font-size: 13px; font-weight: 600; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--up); background: color-mix(in srgb, var(--up) 13%, transparent); }
+.pill.bad { color: var(--down); background: color-mix(in srgb, var(--down) 13%, transparent); }
+.pill.idle { color: var(--link); background: color-mix(in srgb, var(--blue) 13%, transparent); }
+.pill.lg { font-size: 14px; padding: 5px 13px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tile .v { font-size: 24px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 2px; }
+.tile .v small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.st-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 14px; }
+.st-list li { display: flex; justify-content: space-between; gap: 12px; }
+.st-list li > span:first-child { color: var(--muted); }
+.st-list li > span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks .pill { font-weight: 500; font-size: 12px; font-family: var(--mono); }
+.next { display: flex; align-items: center; gap: 12px; border-radius: 12px; padding: 12px 14px; border: 1px dashed color-mix(in srgb, var(--blue) 45%, var(--line)); }
+.next .clock { width: 34px; height: 34px; border-radius: 10px; background: var(--shade), var(--blue); flex-shrink: 0; display: grid; place-items: center; }
+.next .clock svg { width: 18px; height: 18px; color: #fff; }
+.next b { display: block; font-size: 14px; }
+.next span { font-size: 13px; color: var(--muted); }
+.st-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+/* ------------------------------------------------ sections */
+.section { padding: 72px 0; }
+.section + .section { border-top: 1px solid var(--line); }
+.s-kicker { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--link); }
+.section h2.h { font-size: clamp(24px, 3.4vw, 36px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 12px; max-width: 720px; }
+.section .sub { color: var(--muted); max-width: 680px; margin: 0 0 32px; font-size: 16px; }
+
+/* step diagram */
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 0 0 36px; padding: 0; list-style: none; counter-reset: s; }
+.flow li { position: relative; padding: 0 8px; text-align: center; }
+.flow li::after { content: ""; position: absolute; top: 27px; left: calc(50% + 32px); right: calc(-50% + 32px); height: 2px;
+  background: repeating-linear-gradient(90deg, var(--blue) 0 6px, transparent 6px 11px); }
+.flow li:last-child::after { display: none; }
+.flow .n { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 16px; display: grid; place-items: center; color: #fff;
+  background: var(--shade), var(--blue); box-shadow: 4px 4px 0 var(--sun); font: 700 13px var(--mono); }
+.flow li:last-child .n { background: var(--sun); color: var(--navy); box-shadow: 4px 4px 0 var(--blue); }
+.flow b { display: block; font-size: 15px; }
+.flow span { display: block; font-size: 12.5px; color: var(--muted); }
+.flow code { font-size: 11.5px; color: var(--link); }
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; gap: 14px; }
+  .flow li { display: grid; grid-template-columns: 48px 1fr; column-gap: 14px; text-align: left; padding: 0; }
+  .flow .n { grid-row: span 3; width: 48px; height: 48px; margin: 0; border-radius: 14px; }
+  .flow li::after { top: 54px; bottom: -14px; left: 23px; right: auto; width: 2px; height: auto;
+    background: repeating-linear-gradient(180deg, var(--blue) 0 6px, transparent 6px 11px); }
+}
+
+/* code + notes */
+.split { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.code { border-radius: var(--radius); background: #0b1420; border: 1px solid #1b2a3c; color: #e1eaf3; box-shadow: 8px 8px 0 var(--sun); overflow: hidden; min-width: 0; }
+.code-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #1b2a3c; font: 500 12px var(--mono); color: #93a4b6; }
+.code-bar .dots { display: flex; gap: 6px; } .code-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #23364b; }
+.code-bar a { color: #93a4b6; }
+.code pre { margin: 0; padding: 14px 0; font-size: 12.5px; line-height: 1.7; overflow: auto; max-height: 640px; counter-reset: ln; }
+.code .ln { display: block; padding: 0 16px 0 0; white-space: pre; position: relative; }
+.code .ln::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 40px; padding-right: 14px; text-align: right; color: #3d5266; user-select: none; }
+.code .ln.hl { background: rgba(92,184,255,.10); box-shadow: inset 3px 0 0 var(--sun); }
+.code .k { color: #7cc4ff; } .code .s { color: #ffd400; } .code .c { color: #6f8396; font-style: italic; } .code .v { color: #9be39b; } .code .p { color: #8fa3b8; }
+.code .tag { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 10px; border-radius: 50%; background: var(--sun); color: var(--navy); font: 700 11px var(--sans); vertical-align: 1px; }
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.notes li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 16px 56px; position: relative; transition: border-color .15s ease; }
+.notes li:hover { border-color: var(--blue); }
+.notes .tag { position: absolute; left: 16px; top: 16px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--sun); color: var(--navy); font-weight: 700; font-size: 13px; }
+.notes b { display: block; font-size: 15px; margin-bottom: 2px; }
+.notes p { margin: 0; color: var(--muted); font-size: 14px; }
+.notes code { font-size: 12.5px; background: var(--bg-2); border: 1px solid var(--line); padding: 0 5px; border-radius: 5px; color: var(--text); }
+
+/* ------------------------------------------------ CTA */
+.cta { position: relative; overflow: hidden; background: var(--navy); color: #eaf2fa; border-radius: 22px; padding: 40px; display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 32px; align-items: center; }
+.cta::before { content: ""; position: absolute; top: -220px; right: -220px; width: 460px; height: 460px; border-radius: 50%; background: var(--blue); opacity: .35; }
+.cta > * { position: relative; }
+.cta h2 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 10px; }
+.cta p { color: #a8b8c8; margin: 0 0 20px; max-width: 560px; }
+.cta video { width: 220px; height: 220px; border-radius: 20px; display: block; background: #07070b; box-shadow: 8px 8px 0 var(--sun); }
+.cmd { display: flex; align-items: center; gap: 10px; background: #0e1e2e; border: 1px solid #23364b; border-radius: 12px; padding: 6px 6px 6px 14px; margin-bottom: 12px; max-width: 560px; }
+.cmd code { flex: 1; min-width: 0; font-size: 14px; color: #fff; white-space: pre; overflow-x: auto; }
+.cmd code .d { color: var(--sun); user-select: none; }
+.cmd.multi { align-items: flex-start; padding-top: 12px; }
+.cmd.multi code { line-height: 1.8; padding-bottom: 6px; font-size: 13px; }
+.copy { font: 600 12px var(--sans); padding: 8px 12px; border-radius: 8px; cursor: pointer; border: 1px solid #2b4259; background: #132538; color: #cfe0f0; flex-shrink: 0; }
+.copy:hover { color: #fff; border-color: #5cb8ff; }
+.copy.done { background: var(--sun); color: var(--navy); border-color: var(--sun); }
+.cta h3 { font-size: 15px; margin: 22px 0 8px; color: #fff; }
+.cta .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.cta .btn { background: transparent; color: #fff; border-color: #2b4259; }
+.cta .btn:hover { border-color: #5cb8ff; }
+.cta .btn-primary { background: var(--shade), var(--blue); border-color: transparent; }
+@media (max-width: 760px) { .cta { grid-template-columns: minmax(0, 1fr); padding: 26px 18px; } .cta video { display: none; } }
+
+/* ------------------------------------------------ footer */
+footer { border-top: 1px solid var(--line); background: var(--bg-2); padding: 36px 0 44px; margin-top: 72px; font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; justify-content: space-between; }
+footer .fb { display: flex; gap: 12px; align-items: center; }
+footer .fb img { width: 44px; height: 44px; }
+footer .fb p { margin: 0; }
+footer .fb b { color: var(--text); }
+footer .links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+footer .links a { color: var(--muted); text-decoration: none; }
+footer .links a:hover { color: var(--text); }
+.social { display: flex; gap: 8px; }
+.social a { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.social a:hover { border-color: var(--blue); color: var(--link); }
+.social svg { width: 17px; height: 17px; }
+.fine { flex-basis: 100%; font-size: 12.5px; color: var(--faint); margin: 0; }
+
+/* ------------------------------------------------ spending: hero bars (replaces the fx hero video) */
+.hero .bars { position: absolute; right: 5%; top: 50%; width: 380px; height: 340px; transform: translateY(-58%); pointer-events: none; }
+
+.hero .bars rect.b:nth-child(2) { animation-delay: .08s; } .hero .bars rect.b:nth-child(3) { animation-delay: .16s; }
+.hero .bars rect.b:nth-child(4) { animation-delay: .24s; } .hero .bars rect.b:nth-child(5) { animation-delay: .32s; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .hero .bars rect.b { animation: none; } }
+@media (max-width: 860px) { .hero .bars { width: 280px; right: -60px; opacity: .45; } }
+@media (max-width: 600px) { .hero .bars { display: none; } }
+
+/* ------------------------------------------------ spending: categories */
+:root { --c-defense: #56688a; --c-health: #0f8f8c; --c-it: #0070c9; --c-construction: #c46f00; --c-research: #7650d0;
+  --c-energy: #a88400; --c-transport: #2f7fa6; --c-education: #b8478f; --c-other: #6f7d8b; --c-unclassified: #a3afbb; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-defense: #92a4c8; --c-health: #3cc7c2; --c-it: #5cb8ff; --c-construction: #ffa94d;
+  --c-research: #b29bff; --c-energy: #ffd400; --c-transport: #6cc0e6; --c-education: #f08ac7; --c-other: #a3b1bf; --c-unclassified: #5c6e80; } }
+:root[data-theme="dark"] { --c-defense: #92a4c8; --c-health: #3cc7c2; --c-it: #5cb8ff; --c-construction: #ffa94d;
+  --c-research: #b29bff; --c-energy: #ffd400; --c-transport: #6cc0e6; --c-education: #f08ac7; --c-other: #a3b1bf; --c-unclassified: #5c6e80; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px 2px 7px; border-radius: 99px;
+  border: 1px solid color-mix(in srgb, var(--cc) 45%, var(--line)); color: var(--text); background: color-mix(in srgb, var(--cc) 12%, transparent); white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--cc); }
+.chip.unclassified { border-style: dashed; color: var(--muted); }
+.flag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  color: var(--navy); background: var(--sun); white-space: nowrap; }
+:root[data-theme="dark"] .flag { color: #0b1b2b; }
+.flag.soft { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 600; }
+
+/* ------------------------------------------------ spending: sample banner, stats */
+.sample { display: flex; gap: 12px; align-items: flex-start; border: 1px dashed color-mix(in srgb, var(--sun) 70%, var(--line)); background: color-mix(in srgb, var(--sun) 10%, var(--surface));
+  border-radius: var(--radius); padding: 14px 16px; font-size: 14px; }
+.sample b { display: block; }
+.sample span { color: var(--muted); }
+.sample i { flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; background: var(--sun); color: var(--navy); display: grid; place-items: center; font: 800 14px var(--sans); font-style: normal; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile .v.sm { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; line-height: 1.35; margin-top: 4px; }
+
+/* ------------------------------------------------ spending: award list */
+.list-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.list-head h2 { margin: 0; }
+.search { position: relative; flex: 1; min-width: 200px; max-width: 340px; }
+.search input { width: 100%; font: 500 14px var(--sans); color: var(--text); background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px 9px 34px; }
+.search input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 25%, transparent); }
+.search svg { position: absolute; left: 11px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--faint); }
+@media (max-width: 600px) { .search { max-width: none; width: 100%; } }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.filters button { cursor: pointer; font: 600 12px var(--sans); }
+.filters button.chip[aria-pressed="false"] { background: transparent; opacity: .75; }
+.filters button.chip[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--cc); opacity: 1; }
+.filters button.all { --cc: var(--blue); }
+.awards { max-height: 1180px; overflow-y: auto; list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.aw { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.aw:last-child { border-bottom: 0; }
+.aw .who { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.aw .who b { color: var(--text); font-weight: 600; }
+.aw .amt { font-weight: 800; font-size: 18px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.aw .sum { grid-column: 1 / -1; margin: 2px 0 0; font-size: 15px; }
+.aw .sum.none { color: var(--muted); font-style: italic; font-size: 14px; }
+.aw .raw { grid-column: 1 / -1; margin: 0; font: 12px/1.5 var(--mono); color: var(--faint); overflow-wrap: anywhere; }
+.aw .tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 4px; font-size: 12.5px; }
+.aw .tags a { margin-left: auto; font-weight: 600; text-decoration: none; }
+.aw .tags a:hover { text-decoration: underline; }
+@media (max-width: 600px) { .aw .tags a { margin-left: 0; } }
+.more { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.empty { padding: 24px 4px; color: var(--muted); }
+
+/* ------------------------------------------------ spending: bar charts */
+.bars-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.bars-chart text { font: 500 12.5px var(--sans); fill: var(--text); }
+.bars-chart text.n { fill: var(--muted); font-variant-numeric: tabular-nums; }
+.bars-chart rect.track { fill: var(--bg-2); }
+.bars-chart .row:hover text { fill: var(--link); }
+
+/* ------------------------------------------------ spending: AI accuracy */
+.ai-card { position: relative; overflow: hidden; }
+.ai-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--sun), var(--blue)); }
+.ai-top { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+.ring { width: 96px; height: 96px; flex-shrink: 0; }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .bg { stroke: var(--bg-2); } .ring .fg { stroke: var(--blue); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.ring text { font: 800 20px var(--sans); fill: var(--text); text-anchor: middle; dominant-baseline: central; }
+.ai-top p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.ai-top b.big2 { display: block; color: var(--text); font-size: 16px; }
+.meter { height: 10px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; margin: 6px 0 4px; }
+.meter i { display: block; height: 100%; background: var(--blue); border-radius: 99px; min-width: 2px; }
+.meter-l { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+code.m { font-size: 12px; background: var(--bg-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://agentl.com.br" aria-label="agentl home">
+      <img class="cube" src="assets/agentl-cube-256.png" alt="" width="36" height="36">
+      <img class="word word-light" src="assets/agentl-wordmark-light.svg" alt="agentl" width="69" height="22">
+      <img class="word word-dark" src="assets/agentl-wordmark-dark.svg" alt="agentl" width="69" height="22">
+    </a>
+    <a class="badge" href="#how">Built with agentl</a>
+    <nav class="nav" aria-label="Main">
+      <a class="l" href="https://agentl.com.br">Docs</a>
+      <a class="l" href="https://github.com/arimayuji/agentl-examples">All examples</a>
+      <a class="btn btn-sm" href="https://github.com/arimayuji/agentl" aria-label="Star agentl on GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="star-label">Star on GitHub</span>
+      </a>
+      <button class="btn btn-sm icon-btn" id="theme" type="button" aria-label="Theme: auto" title="Theme: auto"></button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <svg class="bars" viewBox="0 0 380 340" aria-hidden="true">
+    <g><rect class="b" x="20" y="200" width="52" height="120" rx="8" fill="#fff" fill-opacity=".22"/><rect class="b" x="92" y="120" width="52" height="200" rx="8" fill="#fff" fill-opacity=".32"/><rect class="b" x="164" y="60" width="52" height="260" rx="8" fill="#ffd400"/><rect class="b" x="236" y="150" width="52" height="170" rx="8" fill="#fff" fill-opacity=".26"/><rect class="b" x="308" y="230" width="52" height="90" rx="8" fill="#fff" fill-opacity=".18"/></g>
+    <path d="M10 322h360" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+    <text x="190" y="40" text-anchor="middle" font-family="Inter, sans-serif" font-weight="800" font-size="34" fill="#ffd400">$</text>
+  </svg>
+  <div class="wrap">
+    <div>
+      <p class="kicker"><b>Open data</b> An agentl example</p>
+      <h1>Where federal money went this week, explained by one YAML file<span class="dot">.</span></h1>
+      <p class="lede">New US federal contracts above $1 million from <a href="https://www.usaspending.gov" style="color:#fff">USAspending.gov</a>, each read by a small AI model and explained in one plain line. An open-source <a href="https://agentl.com.br" style="color:#fff">agentl</a> pipeline fetches, checks, classifies and publishes them every day, and measures how often the AI is right.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-white" href="#how">See how it's built</a>
+        <a class="btn" href="#accuracy">AI accuracy</a>
+        <a class="btn" href="data/awards.json">Get the JSON</a>
+      </div>
+      <ul class="facts">
+        <li><b id="f-total">-</b> in new contracts</li>
+        <li><b id="f-count">-</b> awards over $1M</li>
+        <li><b id="f-window">-</b></li>
+        <li>Updated <b>daily</b></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap grid">
+    <div class="sample" id="sample" hidden><i>!</i><div><b>Sample data until the first scheduled run.</b><span id="sample-text">These are real USAspending awards. The categories and summaries of 30 of them are hand labels from the golden set, not model output; the rest are not classified yet.</span></div></div>
+
+    <div class="stats" aria-label="Summary">
+      <div class="tile"><div class="k">New contracts</div><div class="v" id="s-total">-</div><div class="v sm" id="s-window"></div></div>
+      <div class="tile"><div class="k">Awards over $1M</div><div class="v" id="s-count">-</div><div class="v sm" id="s-agencies"></div></div>
+      <div class="tile"><div class="k">Largest</div><div class="v" id="s-max">-</div><div class="v sm" id="s-max-who"></div></div>
+      <div class="tile"><div class="k">Explained by AI</div><div class="v" id="s-ai">-</div><div class="v sm" id="s-review"></div></div>
+    </div>
+
+    <div class="grid two">
+      <section class="card" aria-labelledby="list-title">
+        <div class="list-head">
+          <h2 class="t" id="list-title">Largest awards <small id="list-sub"></small></h2>
+          <label class="search"><span class="sr">Search awards</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="search" placeholder="Search agency, recipient, words..." autocomplete="off">
+          </label>
+        </div>
+        <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
+        <ul class="awards" id="awards"><li class="empty">Loading...</li></ul>
+        <div class="more"><span id="shown"></span><button class="btn btn-sm" id="more" type="button" hidden>Show more</button></div>
+      </section>
+
+      <div class="grid">
+        <section class="card status-card" aria-labelledby="status-title" id="status">
+          <div class="st-head">
+            <h2 class="t" id="status-title">Pipeline status</h2>
+            <span id="st-outcome" class="pill idle lg">Loading</span>
+          </div>
+          <div class="tiles">
+            <div class="tile"><div class="k">Awards read</div><div class="v" id="st-read">-</div></div>
+            <div class="tile"><div class="k">New in history</div><div class="v" id="st-new">-</div></div>
+            <div class="tile"><div class="k">LLM cost, this run</div><div class="v" id="st-cost">-</div></div>
+            <div class="tile"><div class="k">Cache hit rate</div><div class="v" id="st-cache">-</div></div>
+          </div>
+          <ul class="st-list">
+            <li><span>Last run</span><span id="st-last">-</span></li>
+            <li><span>Last success</span><span id="st-success">-</span></li>
+            <li><span>USAspending data as of</span><span id="st-asof">-</span></li>
+            <li><span>LLM calls</span><span id="st-calls">-</span></li>
+            <li><span>Needs review</span><span id="st-review">-</span></li>
+            <li><span>History writes</span><span id="st-writes">-</span></li>
+            <li><span>Duration</span><span id="st-dur">-</span></li>
+          </ul>
+          <div>
+            <div class="checks" id="st-rules"></div>
+            <p class="note" id="st-skip" hidden></p>
+            <p class="note error" id="st-error" hidden></p>
+          </div>
+          <div class="next">
+            <span class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <div><b id="st-next">Next run</b><span id="st-next-in">Daily at 06:07 UTC</span></div>
+          </div>
+          <div class="st-foot">
+            <span id="st-ver">From <code>status.json</code>, written by <code>run.py</code></span>
+            <a class="btn btn-sm" href="https://github.com/arimayuji/agentl-examples/actions/workflows/spending.yml">All workflow runs</a>
+          </div>
+        </section>
+
+        <section class="card ai-card" aria-labelledby="ai-title" id="accuracy">
+          <h2 class="t" id="ai-title">AI accuracy <small>golden set</small></h2>
+          <div class="ai-top">
+            <svg class="ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="ai-ring" cx="50" cy="50" r="42" stroke-dasharray="0 264"/><text x="50" y="50" id="ai-pct">-</text></svg>
+            <p><b class="big2" id="ai-head">Not measured yet</b><span id="ai-sub">Each run scores the model on 30 hand-labelled awards with <code>agentl eval</code>: category and clarity must both match.</span></p>
+          </div>
+          <ul class="st-list">
+            <li><span>Model</span><span><code class="m" id="ai-model">-</code></span></li>
+            <li><span>Category right</span><span id="ai-cat">-</span></li>
+            <li><span>Clarity right</span><span id="ai-clar">-</span></li>
+            <li><span>Cost per record</span><span id="ai-rec">-</span></li>
+            <li><span>Cost per right answer</span><span id="ai-right">-</span></li>
+          </ul>
+          <div style="margin-top:16px">
+            <div class="meter-l"><span>LLM spend this month</span><span id="ai-month">-</span></div>
+            <div class="meter" role="img" id="ai-meter" aria-label="Monthly spend against the cap"><i id="ai-bar" style="width:0"></i></div>
+            <div class="meter-l"><span id="ai-month-note">Runs and evals, as OpenRouter reports them</span><span id="ai-cap">-</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <section class="card bars-chart" aria-labelledby="cat-title">
+        <h2 class="t" id="cat-title">By category <small id="cat-sub"></small></h2>
+        <div id="by-cat"></div>
+      </section>
+      <section class="card bars-chart" aria-labelledby="ag-title">
+        <h2 class="t" id="ag-title">By agency <small id="ag-sub"></small></h2>
+        <div id="by-agency"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <p class="s-kicker">How this page is built</p>
+      <h2 class="h" id="how-title">One pipeline file, one small model, a capped budget.</h2>
+      <p class="sub">GitHub Actions runs this agentl pipeline every morning. It writes two JSON files, and this static page reads them. Below is the exact <code>pipeline.yaml</code> that produced the awards above.</p>
+
+      <ol class="flow" aria-label="Pipeline steps">
+        <li><div class="n">01</div><b>Fetch</b><span><code>http.post</code>, only when USAspending loaded new data</span></li>
+        <li><div class="n">02</div><b>Check</b><span>Amount above zero, unique ids, required fields</span></li>
+        <li><div class="n">03</div><b>Classify</b><span>An <code>agent</code> step, cached per award</span></li>
+        <li><div class="n">04</div><b>Store</b><span>Changeset on <code>award_id</code></span></li>
+        <li><div class="n">05</div><b>Publish</b><span>JSON, run status and AI accuracy</span></li>
+      </ol>
+
+      <div class="split">
+        <div class="code">
+          <div class="code-bar"><span class="dots"><i></i><i></i><i></i></span><span>spending/pipeline.yaml</span><a href="https://github.com/arimayuji/agentl-examples/blob/main/spending/pipeline.yaml">View on GitHub</a></div>
+          <pre id="yaml" aria-label="spending/pipeline.yaml"><span class="ln"><span class="c"># Loading pipeline.yaml...</span></span></pre>
+        </div>
+        <ol class="notes">
+          <li><span class="tag">1</span><b>Only work when there is new data</b><p><code>if_changed</code> on USAspending's <code>last_updated</code> date: when it is the same as on the last good run, the run stops with outcome <code>no_change</code>. Nothing is fetched or paid for.</p></li>
+          <li><span class="tag">2</span><b>Checks before the model sees a row</b><p>At least one award, an amount above zero, one row per award id and no missing id, amount, agency or recipient. A bad row is rejected alone; the run goes on.</p></li>
+          <li><span class="tag">3</span><b>The same award is never paid for twice</b><p>The agent step caches each answer by its input, and only the fields it needs reach it, so a revised amount keeps the cached answer. <code>budget</code> caps cost and calls per run, <code>rate_limit</code> paces the calls.</p></li>
+          <li><span class="tag">4</span><b>Unsure answers are marked, personal data masked</b><p><code>review: {below: 0.6, hold: false}</code> shows a low-confidence answer with a "needs review" badge instead of hiding it. <code>pii: mask</code> replaces e-mails, phones and names with placeholders before the call.</p></li>
+          <li><span class="tag">5</span><b>Accuracy is measured, not claimed</b><p><code>golden:</code> points at 30 awards labelled by hand. <code>agentl eval</code> runs the step on them each day; the panel above shows the share right and the cost per right answer.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="run" aria-labelledby="run-title" style="border-top:0;padding-top:0">
+    <div class="wrap">
+      <div class="cta">
+        <div>
+          <h2 id="run-title">Build your own in an afternoon.</h2>
+          <p>agentl is an open-source YAML ETL library for Python: connectors, checks, incremental runs and, when you need judgement, LLM agent steps with caching, budgets and evals. MIT licensed.</p>
+          <div class="cmd"><code><span class="d">$ </span>pip install agentl-etl</code><button class="copy" type="button" data-copy="pip install agentl-etl">Copy</button></div>
+          <h3>Run this pipeline yourself</h3>
+          <div class="cmd multi"><code id="cmds"><span class="d">$ </span>git clone https://github.com/arimayuji/agentl-examples &amp;&amp; cd agentl-examples/spending
+<span class="d">$ </span>pip install "agentl-etl @ git+https://github.com/arimayuji/agentl@b83f2bbfdd11fa9bb16fa045f0bfd67e93d7a504"
+<span class="d">$ </span>export OPENROUTER_API_KEY=...   # optional: without it, awards are not classified
+<span class="d">$ </span>python run.py &amp;&amp; python -m http.server -d site 8000</code><button class="copy" type="button" data-copy-from="cmds">Copy</button></div>
+          <div class="row">
+            <a class="btn btn-primary" href="https://agentl.com.br/getting-started/">Get started</a>
+            <a class="btn" href="https://github.com/arimayuji/agentl">Star on GitHub</a>
+            <a class="btn" href="https://github.com/arimayuji/agentl-examples">All examples</a>
+          </div>
+        </div>
+        <video autoplay muted loop playsinline preload="metadata" poster="assets/agentl-loop-poster.jpg" aria-label="The agentl cube logo, animated">
+          <source src="assets/agentl-loop.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fb">
+      <img src="assets/agentl-cube-256.png" alt="agentl" width="44" height="44">
+      <p><b>Built with <a href="https://agentl.com.br">agentl</a></b><br>Data: <a href="https://www.usaspending.gov">USAspending.gov</a>. Summaries: an AI model through <a href="https://openrouter.ai">OpenRouter</a>. Pipeline and site: <a href="https://github.com/arimayuji/agentl-examples/blob/main/LICENSE">MIT</a>.</p>
+    </div>
+    <nav class="links" aria-label="Footer">
+      <a href="https://agentl.com.br">Docs</a>
+      <a href="https://github.com/arimayuji/agentl">agentl on GitHub</a>
+      <a href="https://github.com/arimayuji/agentl-examples/tree/main/spending">Source of this page</a>
+      <a href="https://github.com/arimayuji/agentl-examples">All examples</a>
+    </nav>
+    <div class="social">
+      <a href="https://x.com/useagentl" aria-label="agentl on X (@useagentl)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://instagram.com/useagentl" aria-label="agentl on Instagram (@useagentl)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://github.com/arimayuji/agentl" aria-label="agentl on GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+    <p class="fine">USAspending.gov data are public domain and are revised as agencies report; amounts are obligations at award time, not money spent. Summaries and categories are written by an AI model and can be wrong: a "needs review" badge marks the ones it was unsure of, and each award links to its official record. Follow <a href="https://x.com/useagentl">@useagentl</a> on X and Instagram.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* no storage */ } }
+  };
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // Theme: auto -> light -> dark
+  var ICONS = {
+    auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+  };
+  var modes = ["auto", "light", "dark"];
+  function applyTheme(m) {
+    if (m === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", m);
+    var b = $("theme"); b.innerHTML = ICONS[m]; b.setAttribute("aria-label", "Theme: " + m); b.title = "Theme: " + m;
+  }
+  var mode = store.get("spending-theme") || "auto";
+  if (modes.indexOf(mode) < 0) mode = "auto";
+  applyTheme(mode);
+  $("theme").addEventListener("click", function () {
+    mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+    store.set("spending-theme", mode); applyTheme(mode); redraw();
+  });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+  function isDark() { return css("color-scheme") === "dark"; }
+
+  // ------------------------------------------------ formatting
+  function when(iso) {
+    if (!iso) return "never";
+    return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+  }
+  function day(d) { return d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }) : "-"; }
+  function ago(ms) {
+    var m = Math.round(Math.abs(ms) / 60000);
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60); if (h < 48) return h + " h " + (m % 60) + " min";
+    return Math.round(h / 24) + " days";
+  }
+  function num(n) { return (n || 0).toLocaleString("en-US"); }
+  function money(n) {
+    var a = Math.abs(n || 0);
+    if (a >= 1e9) return "$" + (n / 1e9).toFixed(a >= 1e10 ? 1 : 2) + "B";
+    if (a >= 1e6) return "$" + (n / 1e6).toFixed(a >= 1e8 ? 0 : 1) + "M";
+    if (a >= 1e3) return "$" + Math.round(n / 1e3) + "K";
+    return "$" + Math.round(n);
+  }
+  function usd(n) {
+    if (n == null) return "-";
+    if (n === 0) return "$0";
+    if (n < 0.01) return "$" + n.toPrecision(2);
+    return "$" + n.toFixed(n < 1 ? 3 : 2);
+  }
+  function pct(x) { return x == null ? "-" : Math.round(x * 100) + "%"; }
+
+  // ------------------------------------------------ categories
+  var CATS = ["defense", "health", "IT", "construction", "research", "energy", "transport", "education", "other", "unclassified"];
+  var LABEL = { IT: "IT", unclassified: "not classified" };
+  function catLabel(c) { return LABEL[c] || c.charAt(0).toUpperCase() + c.slice(1); }
+  function catVar(c) { return "var(--c-" + (CATS.indexOf(c) >= 0 ? c.toLowerCase() : "other") + ")"; }
+  function chip(c, tag) {
+    var e = el(tag || "span", { "class": "chip" + (c === "unclassified" ? " unclassified" : "") }, catLabel(c));
+    e.style.setProperty("--cc", catVar(c)); return e;
+  }
+
+  // ------------------------------------------------ data
+  var doc = null, rows = [], query = "", cat = "all", limit = 10;
+  function matches(a) {
+    if (cat !== "all" && a.category !== cat) return false;
+    if (!query) return true;
+    var hay = (a.recipient + " " + a.agency + " " + a.sub_agency + " " + a.description + " " + a.plain_summary + " " + a.piid + " " + (a.psc_desc || "")).toLowerCase();
+    return query.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+  }
+
+  function list() {
+    var found = rows.filter(matches), ul = $("awards"); ul.textContent = "";
+    found.slice(0, limit).forEach(function (a) {
+      var li = el("li", { "class": "aw" });
+      var who = el("div", { "class": "who" });
+      who.appendChild(el("b", {}, a.agency || "Unknown agency"));
+      if (a.sub_agency && a.sub_agency !== a.agency) who.appendChild(el("span", {}, a.sub_agency));
+      li.appendChild(who);
+      li.appendChild(el("div", { "class": "amt" }, money(a.amount)));
+      var ai = a.classified_by === "llm" || a.classified_by === "sample";
+      li.appendChild(el("p", { "class": "sum" + (ai ? "" : " none") }, ai ? a.plain_summary : "Not explained yet. Official description below."));
+      li.appendChild(el("p", { "class": "raw", title: "Description as filed" }, a.description || "(no description)"));
+      var tags = el("div", { "class": "tags" });
+      tags.appendChild(chip(a.category));
+      if (a.needs_review) tags.appendChild(el("span", { "class": "flag", title: "The model's confidence was below 0.6" }, "needs review"));
+      if (a.clarity === "opaque") tags.appendChild(el("span", { "class": "flag soft", title: "The filed description alone does not say what is bought" }, "vague description"));
+      if (a.classified_by === "sample") tags.appendChild(el("span", { "class": "flag soft", title: "Hand label from the golden set" }, "sample label"));
+      tags.appendChild(el("span", { "style": "color:var(--muted)" }, (a.recipient || "Unknown recipient") + " · from " + day(a.start_date)));
+      tags.appendChild(el("a", { href: a.url, target: "_blank", rel: "noopener" }, "Award on USAspending"));
+      li.appendChild(tags);
+      ul.appendChild(li);
+    });
+    if (!found.length) ul.appendChild(el("li", { "class": "empty" }, "No award matches this search."));
+    $("shown").textContent = "Showing " + num(Math.min(limit, found.length)) + " of " + num(found.length) + (found.length !== rows.length ? " matching" : "") + " awards, largest first";
+    $("more").hidden = found.length <= limit;
+    $("list-sub").textContent = query || cat !== "all" ? num(found.length) + " match" : "";
+  }
+
+  function filters() {
+    var box = $("filters"); box.textContent = "";
+    var present = {}; rows.forEach(function (a) { present[a.category] = (present[a.category] || 0) + 1; });
+    var all = el("button", { "class": "chip all", type: "button", "aria-pressed": String(cat === "all") }, "All " + num(rows.length));
+    all.addEventListener("click", function () { cat = "all"; limit = 10; filters(); list(); });
+    box.appendChild(all);
+    CATS.forEach(function (c) {
+      if (!present[c]) return;
+      var b = chip(c, "button"); b.type = "button"; b.setAttribute("aria-pressed", String(cat === c)); b.textContent = catLabel(c) + " " + present[c];
+      b.addEventListener("click", function () { cat = cat === c ? "all" : c; limit = 10; filters(); list(); });
+      box.appendChild(b);
+    });
+  }
+
+  // Horizontal bars in inline SVG: label on top, bar under it, amount at the end.
+  function bars(boxId, items, color, onPick) {
+    var box = $(boxId), W = Math.max(260, box.clientWidth || 520), rowH = 40, max = 0; box.textContent = "";
+    items.forEach(function (x) { if (x.amount > max) max = x.amount; });
+    var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + (items.length * rowH));
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", items.map(function (x) { return x.label + " " + money(x.amount); }).join(", "));
+    function s(tag, attrs, text) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+    items.forEach(function (x, i) {
+      var y = i * rowH, g = s("g", { "class": "row" });
+      var w = max ? Math.max(3, (W - 80) * x.amount / max) : 3;
+      g.appendChild(s("title", {}, x.label + ": " + money(x.amount) + " in " + num(x.count) + " awards"));
+      g.appendChild(s("text", { x: 0, y: y + 13 }, x.label.length > W / 7.5 ? x.label.slice(0, Math.floor(W / 7.5) - 2) + "..." : x.label));
+      g.appendChild(s("rect", { "class": "track", x: 0, y: y + 20, width: W - 80, height: 12, rx: 6 }));
+      var r = s("rect", { x: 0, y: y + 20, width: w, height: 12, rx: 6 }); r.style.fill = color(x); g.appendChild(r);
+      g.appendChild(s("text", { "class": "n", x: W, y: y + 31, "text-anchor": "end" }, money(x.amount)));
+      if (onPick) { g.style.cursor = "pointer"; g.addEventListener("click", function () { onPick(x); }); }
+      svg.appendChild(g);
+    });
+    box.appendChild(svg);
+  }
+
+  function charts() {
+    var cats = (doc.by_category || []).map(function (c) { return { label: catLabel(c.name), name: c.name, amount: c.amount, count: c.count }; });
+    bars("by-cat", cats, function (x) { return catVar(x.name); }, function (x) { cat = x.name; limit = 10; filters(); list(); $("awards").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    $("cat-sub").textContent = "click a bar to filter";
+    var ags = (doc.by_agency || []).slice(0, 8).map(function (a) { return { label: a.name, amount: a.amount, count: a.count }; });
+    bars("by-agency", ags, function () { return "var(--chart)"; }, function (x) { $("q").value = x.label; query = x.label.toLowerCase(); cat = "all"; limit = 10; filters(); list(); $("awards").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    $("ag-sub").textContent = "top " + ags.length + " of " + (doc.by_agency || []).length;
+  }
+
+  function summary() {
+    $("s-total").textContent = money(doc.total); $("f-total").textContent = money(doc.total);
+    $("s-count").textContent = num(doc.count); $("f-count").textContent = num(doc.count);
+    $("s-agencies").textContent = num((doc.by_agency || []).length) + " agencies";
+    var big = rows[0];
+    if (big) { $("s-max").textContent = money(big.amount); $("s-max-who").textContent = (big.sub_agency || big.agency) + " · " + big.recipient; }
+    var ai = rows.filter(function (a) { return a.classified_by === "llm"; }).length;
+    var sample = rows.filter(function (a) { return a.classified_by === "sample"; }).length;
+    var flagged = rows.filter(function (a) { return a.needs_review; }).length;
+    $("s-ai").textContent = num(ai) + " "; $("s-ai").appendChild(el("small", {}, "of " + num(rows.length)));
+    $("s-review").textContent = sample ? num(sample) + " hand labels (sample)" : num(flagged) + " marked needs review";
+  }
+
+  function redraw() { if (doc) { filters(); list(); charts(); } }
+  var rz = null; window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { if (doc) charts(); }, 150); });
+
+  var timer = null;
+  $("q").addEventListener("input", function () {
+    var v = this.value; clearTimeout(timer);
+    timer = setTimeout(function () { query = v.trim().toLowerCase(); limit = 10; list(); }, 120);
+  });
+  $("more").addEventListener("click", function () { limit += 10; list(); });
+
+  // ------------------------------------------------ status and accuracy
+  // Next run of the cron "7 6 * * *" (UTC). GitHub may start scheduled runs a few minutes late.
+  function nextRun(now) { var n = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 6, 7)); if (n <= now) n = new Date(n.getTime() + 864e5); return n; }
+  function tickNext() {
+    var now = new Date(), n = nextRun(now);
+    $("st-next").textContent = "Next run about " + n.toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+    $("st-next-in").textContent = "In " + ago(n - now) + " · cron 7 6 * * *, GitHub may start it a few minutes late";
+  }
+  tickNext(); setInterval(tickNext, 30000);
+
+  function status(st) {
+    var o = $("st-outcome");
+    if (!st) { o.className = "pill idle lg"; o.textContent = "Not available yet"; return; }
+    var out = st.outcome || "unknown";
+    o.className = "pill lg " + (out === "success" ? "ok" : out === "no_change" ? "idle" : out === "partial" ? "idle" : "bad");
+    o.textContent = { success: "Success", no_change: "No new data", failed: "Failed", partial: "Partial" }[out] || out;
+    if (st.sample) { $("sample").hidden = false; }
+    var w = st.writes || {}, llm = st.llm || {};
+    $("st-read").textContent = num(st.rows_read);
+    $("st-new").textContent = num(w.inserted);
+    $("st-cost").textContent = usd(llm.cost_usd);
+    $("st-cache").textContent = pct(llm.cache_hit_rate);
+    if (llm.cache_hit_rate != null) $("st-cache").appendChild(el("small", {}, " of " + num(llm.asked)));
+    $("st-last").textContent = when(st.finished_at);
+    $("st-success").textContent = when(st.last_success_at);
+    $("st-asof").textContent = st.data_as_of ? day(st.data_as_of) + " · window " + day(st.window && st.window.from) + " to " + day(st.window && st.window.to) : "-";
+    $("st-calls").textContent = num(llm.calls) + (llm.max_usd_this_run != null ? " · cap " + usd(llm.max_usd_this_run) + " this run" : "");
+    $("st-review").textContent = num(llm.needs_review) + " awards";
+    $("st-writes").textContent = num(w.inserted) + " new · " + num(w.updated) + " changed · " + num(w.unchanged) + " same";
+    $("st-dur").textContent = st.duration_s != null ? st.duration_s.toFixed(1) + " s" : "-";
+    var rules = (st.checks && st.checks.rules) || {}, box = $("st-rules"); box.textContent = "";
+    Object.keys(rules).forEach(function (n) {
+      var r = rules[n], cls = r === "passed" ? "ok" : (r === "warn" || r === "warned" || r === "reject") ? "idle" : "bad";
+      box.appendChild(el("span", { "class": "pill " + cls, title: n + ": " + r }, n + (r === "passed" ? "" : " · " + r)));
+    });
+    if (llm.classify !== "on" && llm.skipped_reason) { $("st-skip").hidden = false; $("st-skip").textContent = "Classification off: " + llm.skipped_reason + "."; }
+    if (st.error) { $("st-error").hidden = false; $("st-error").textContent = st.error; }
+    if (st.agentl_version) $("st-ver").textContent = "agentl " + st.agentl_version + " · run " + (st.run_id || "");
+    if (st.window) $("f-window").textContent = day(st.window.from) + " to " + day(st.window.to);
+    if (st.window) $("s-window").textContent = day(st.window.from) + " to " + day(st.window.to) + " · new awards";
+    accuracy(st);
+  }
+
+  function accuracy(st) {
+    var ev = st.eval, m = st.month || {}, llm = st.llm || {};
+    $("ai-model").textContent = (ev && ev.model) || llm.model || "-";
+    if (ev && ev.accuracy != null) {
+      var a = ev.accuracy;
+      $("ai-ring").setAttribute("stroke-dasharray", (a * 264).toFixed(1) + " 264");
+      $("ai-pct").textContent = pct(a);
+      $("ai-head").textContent = num(ev.right) + " of " + num(ev.records) + " fully right";
+      $("ai-sub").textContent = "Category and clarity both match the hand label. Measured " + when(ev.at) + ".";
+      $("ai-cat").textContent = pct(ev.fields && ev.fields.category);
+      $("ai-clar").textContent = pct(ev.fields && ev.fields.clarity);
+      $("ai-rec").textContent = usd(ev.cost_per_record);
+      $("ai-right").textContent = usd(ev.cost_per_right);
+    } else {
+      $("ai-pct").textContent = "-"; $("ai-ring").style.display = "none";
+      $("ai-cat").textContent = $("ai-clar").textContent = "not run yet";
+      $("ai-rec").textContent = llm.cost_per_record != null ? usd(llm.cost_per_record) : "-";
+      $("ai-right").textContent = "-";
+    }
+    var cap = m.cap_usd || 5, spent = m.spent_usd || 0;
+    $("ai-month").textContent = usd(spent) + " of " + usd(cap);
+    $("ai-bar").style.width = Math.min(100, spent / cap * 100) + "%";
+    $("ai-meter").setAttribute("aria-label", "Spent " + usd(spent) + " of a " + usd(cap) + " monthly cap");
+    $("ai-cap").textContent = (m.runs ? num(m.runs) + " runs in " + m.id : "");
+  }
+
+  // ------------------------------------------------ pipeline.yaml
+  // Tiny YAML highlighter: comments, keys, strings, ${VARS}, punctuation.
+  var NOTES = [[/if_changed:/, 1], [/^\s*- id: verify/, 2], [/^\s*budget:/, 3], [/^\s*- id: brief/, 3], [/^\s*review:/, 4], [/^\s*pii:/, 4], [/^\s*golden:/, 5]];
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hlValue(v) {
+    var re = /(\$\{[^}]*\})|('[^']*'|"[^"]*")|([{}\[\],])|(\b[a-z_]+)(?=: )/g, out = "", i = 0, m;
+    while ((m = re.exec(v))) {
+      out += esc(v.slice(i, m.index));
+      var cls = m[1] ? "v" : m[2] ? "s" : m[3] ? "p" : "k";
+      out += '<span class="' + cls + '">' + esc(m[0]) + "</span>";
+      i = re.lastIndex;
+    }
+    return out + esc(v.slice(i));
+  }
+  function highlight(text) {
+    return text.replace(/\n$/, "").split("\n").map(function (line) {
+      var tag = 0;
+      NOTES.forEach(function (n) { if (n[0].test(line)) tag = n[1]; });
+      var html, ci = line.search(/(^|\s)#/);
+      var body = ci >= 0 ? line.slice(0, ci) : line, comment = ci >= 0 ? line.slice(ci) : "";
+      var m = body.match(/^(\s*-?\s*)([A-Za-z_][\w]*)(:)(.*)$/);
+      html = m ? esc(m[1]) + '<span class="k">' + m[2] + '</span>' + m[3] + hlValue(m[4]) : hlValue(body);
+      if (comment) html += '<span class="c">' + esc(comment) + "</span>";
+      if (tag) html += '<span class="tag" title="Note ' + tag + '">' + tag + "</span>";
+      return '<span class="ln' + (tag ? " hl" : "") + '">' + (html || " ") + "</span>";
+    }).join("");
+  }
+
+  function getJSON(url) { return fetch(url, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(url + ": " + r.status); return r.json(); }); }
+
+  getJSON("data/awards.json").then(function (d) {
+    doc = Array.isArray(d) ? d[0] : d;
+    var f = doc.fields;
+    rows = doc.awards.map(function (a) { var o = {}; f.forEach(function (k, i) { o[k] = a[i]; }); return o; });
+    summary(); redraw();
+  }).catch(function (e) {
+    $("awards").textContent = ""; $("awards").appendChild(el("li", { "class": "empty" }, "No data: " + String(e.message || e)));
+  });
+  getJSON("data/status.json").then(status).catch(function () { status(null); });
+  fetch("pipeline.yaml", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (t) { $("yaml").innerHTML = highlight(t); })
+    .catch(function () {
+      $("yaml").innerHTML = '<span class="ln"><span class="c"># pipeline.yaml is not deployed here. Read it on GitHub:</span></span>' +
+        '<span class="ln"><span class="c"># https://github.com/arimayuji/agentl-examples/blob/main/spending/pipeline.yaml</span></span>';
+    });
+
+  // Copy buttons
+  Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (b) {
+    b.addEventListener("click", function () {
+      var text = b.dataset.copy || $(b.dataset.copyFrom).textContent.replace(/^\$ /gm, "");
+      var done = function () { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>

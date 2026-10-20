@@ -12,6 +12,7 @@ Browse them all, with live run status, at **[examples.agentl.com.br](https://exa
 | --- | --- | --- | --- |
 | [`fx/`](fx/) | [fx.agentl.com.br](https://fx.agentl.com.br) | Euro foreign-exchange reference rates from the European Central Bank, with a 90-day chart and a pipeline status panel | `http.get` with `if_changed`, `fn:` steps, `concat`, `dedupe`, `compute`, `check` (rows, not_null, unique, accepted, fresh), `sqlite.write` with `mode: changeset`, `sqlite.read`, `json.write`, the Python `agentl.run` API with event listeners |
 | [`quakes/`](quakes/) | [quakes.agentl.com.br](https://quakes.agentl.com.br) | A live map of earthquakes worldwide from the USGS, refreshed every 15 minutes, with magnitude and period filters, the latest and largest quakes and a count of USGS revisions | `http.get` with `if_changed` and `items`, `fn:` steps, `concat`, `check` (rows, not_null, unique, range, accepted, fresh, per-rule `severity`, row `rules` with a `check.digest`), `select`, `sqlite.write` with `mode: changeset`, `after:`, `sqlite.read`, `json.write`, the Python `agentl.run` API |
+| [`spending/`](spending/) | [spending.agentl.com.br](https://spending.agentl.com.br) | New US federal contracts above $1M from USAspending.gov, each explained in one plain-English line by a small LLM, with totals by category and agency, a search box and the model's accuracy and cost on a hand-labelled golden set | `http.get` with `if_changed`, `http.post` per record, `fn:` steps, `check` with `severity`, an `agent` step on `provider: openrouter` with `rules:`, the per-record cache, `budget` (`max_usd`, `max_calls`), `rate_limit`, `review` (`hold: false`), `pii: mask`, `golden:` and `agentl eval`, `sqlite.write` with `mode: changeset`, `json.write`, the Python `agentl.run` API |
 
 ## Index site
 
@@ -28,13 +29,14 @@ Python 3.10 or newer.
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install agentl-etl
-cd fx                             # or: cd quakes
+cd fx                             # or: cd quakes, cd spending
 agentl lint pipeline.yaml
 python run.py                     # runs the pipeline and writes site/data/status.json
 python -m http.server -d site 8000
 ```
 
-Then open http://localhost:8000. See each project's README for details.
+Then open http://localhost:8000. See each project's README for details. `spending/` needs agentl from a pinned
+commit of main and, for the summaries, an `OPENROUTER_API_KEY`; see [its README](spending/README.md).
 
 ## License
 
