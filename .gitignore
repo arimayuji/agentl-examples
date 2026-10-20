@@ -17,3 +17,6 @@ __pycache__/
 .wrangler/
 node_modules/
 .DS_Store
+# quakes: same layout as fx
+quakes/data/
+quakes/site/pipeline.yaml

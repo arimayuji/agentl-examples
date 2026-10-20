@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Earthquakes · built with agentl</title>
+<meta name="description" content="A live map of earthquakes worldwide from the U.S. Geological Survey, refreshed every 15 minutes. Fetched, checked and stored by one agentl YAML pipeline, including USGS revisions.">
+<link rel="canonical" href="https://quakes.agentl.com.br/">
+<meta name="theme-color" content="#0070c9">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/agentl-cube-256.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="assets/agentl-icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="agentl examples">
+<meta property="og:url" content="https://quakes.agentl.com.br/">
+<meta property="og:title" content="Live earthquakes, built with agentl">
+<meta property="og:description" content="Earthquakes worldwide from the USGS, refreshed every 15 minutes by one open-source agentl pipeline. Free data, open code.">
+<meta property="og:image" content="https://quakes.agentl.com.br/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="agentl cube logo and the title Live earthquakes, built with agentl">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@useagentl">
+<meta name="twitter:title" content="Live earthquakes, built with agentl">
+<meta name="twitter:description" content="Earthquakes worldwide from the USGS, refreshed every 15 minutes by one open-source agentl pipeline.">
+<meta name="twitter:image" content="https://quakes.agentl.com.br/assets/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous" referrerpolicy="no-referrer">
+<script>
+/* Set the theme before paint to avoid a flash. */
+try { var t = localStorage.getItem("quakes-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+<style>
+:root {
+  --blue: #0070c9; --blue-ink: #005ea8; --deep: #003f7d; --sun: #ffd400; --navy: #0b1b2b;
+  --bg: #ffffff; --bg-2: #f5f8fb; --surface: #ffffff; --text: #0b1b2b; --muted: #4d5e70; --faint: #7a8896;
+  --line: #e2e9f0; --link: #005ea8; --glow: rgba(11,27,43,.08);
+  --up: #1a7f37; --down: #c62828; --chart: #0070c9; --chart-fill: rgba(0,112,201,.10); --grid: #e9eff5;
+  --shade: radial-gradient(circle at 100% 0, rgba(0,94,168,.9) 0 2.2em, transparent 2.25em);
+  --radius: 14px;
+  --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+    --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+    --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #08131f; --bg-2: #0b1826; --surface: #0d1a28; --text: #eaf2fa; --muted: #a8b8c8; --faint: #6e8193;
+  --line: #1e3045; --link: #5cb8ff; --glow: rgba(0,0,0,.35);
+  --up: #4ac26b; --down: #ff6b6b; --chart: #5cb8ff; --chart-fill: rgba(92,184,255,.14); --grid: #16283a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--link); }
+code, pre { font-family: var(--mono); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; position: relative; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+/* ------------------------------------------------ top bar */
+.top { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
+.brand .cube { width: 36px; height: 36px; }
+.brand .word { height: 22px; width: auto; margin-top: 3px; }
+.word-dark { display: none; }
+:root[data-theme="dark"] .word-light { display: none; } :root[data-theme="dark"] .word-dark { display: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .word-light { display: none; } :root:not([data-theme="light"]) .word-dark { display: block; } }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px 4px 6px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--text); text-decoration: none; white-space: nowrap; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sun) 30%, transparent); }
+.nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.nav a.l { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; padding: 6px 10px; border-radius: 8px; }
+.nav a.l:hover { color: var(--text); background: var(--bg-2); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 11px; font: 600 14px var(--sans);
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); border-color: var(--faint); }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn-primary { background: var(--shade), var(--blue); color: #fff; border-color: transparent; }
+.btn-primary:hover { box-shadow: 4px 4px 0 var(--sun); border-color: transparent; }
+.btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
+.icon-btn { width: 36px; height: 36px; padding: 0; justify-content: center; }
+@media (max-width: 860px) { .nav a.l { display: none; } }
+@media (max-width: 420px) { .brand .word { display: none !important; } }
+@media (max-width: 420px) { .star-label { display: none; } }
+
+/* ------------------------------------------------ hero */
+.hero { position: relative; overflow: hidden; background: var(--blue); color: #fff; padding: 56px 0 104px; }
+@media (max-width: 760px) { .hero { padding: 36px 0 92px; } }
+.hero .wrap { min-height: 360px; }
+.hero .wrap > div { max-width: 600px; }
+@media (min-width: 761px) { .hero .lede { max-width: 540px; } }
+.kicker { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.kicker b { background: var(--sun); color: var(--navy); padding: 2px 8px; border-radius: 99px; letter-spacing: .06em; }
+.hero h1 { margin: 0 0 14px; font-size: clamp(32px, 5.4vw, 56px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; max-width: 720px; }
+.hero h1 .dot { color: var(--sun); }
+.lede { margin: 0 0 24px; max-width: 600px; font-size: 17px; color: rgba(255,255,255,.88); }
+.lede code { background: rgba(255,255,255,.14); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero .btn { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff; }
+.hero .btn:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.6); }
+.hero .btn-white { background: #fff; color: var(--navy); border-color: #fff; }
+.hero .btn-white:hover { background: #fff; box-shadow: 4px 4px 0 var(--sun); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 26px 0 0; padding: 0; list-style: none; font-size: 13px; color: rgba(255,255,255,.8); }
+.facts b { color: #fff; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } html { scroll-behavior: auto; } }
+@media (max-width: 760px) { .hero { padding: 36px 0 92px; } .hero .wrap { min-height: 0; } }
+
+/* ------------------------------------------------ cards */
+main { position: relative; margin-top: -64px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: 0 18px 50px var(--glow); min-width: 0; }
+.grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 920px) { .grid.two { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); } }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.pair { font-size: 13px; color: var(--muted); margin: 0; }
+.big { font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.chg { font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 10px; font-size: 15px; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+label.pick { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+select { font: 500 15px var(--sans); color: var(--text); background-color: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 34px 9px 12px; min-width: 220px; max-width: 100%; appearance: none; text-transform: none; letter-spacing: 0;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.chart { position: relative; height: 320px; }
+@media (max-width: 600px) { .chart { height: 240px; } select { min-width: 0; width: 100%; } label.pick { width: 100%; } }
+.range { display: flex; gap: 8px 18px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.range b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+h2.t { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h2.t small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { position: sticky; top: 0; background: var(--surface); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: color-mix(in srgb, var(--blue) 7%, transparent); }
+tbody tr.sel { background: color-mix(in srgb, var(--sun) 20%, transparent); }
+:root[data-theme="dark"] tbody tr.sel { background: rgba(255,212,0,.10); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) tbody tr.sel { background: rgba(255,212,0,.10); } }
+td .name { color: var(--muted); font-size: 13px; margin-left: 8px; }
+@media (max-width: 600px) { td .name, th.opt, td.opt { display: none; } }
+.note { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.error { color: var(--down); }
+
+/* ------------------------------------------------ status panel */
+.status-card { display: flex; flex-direction: column; gap: 16px; position: relative; overflow: hidden; }
+.status-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--blue), var(--deep) 60%, var(--sun)); }
+.st-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.st-head h2 { margin: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 11px; font-size: 13px; font-weight: 600; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--up); background: color-mix(in srgb, var(--up) 13%, transparent); }
+.pill.bad { color: var(--down); background: color-mix(in srgb, var(--down) 13%, transparent); }
+.pill.idle { color: var(--link); background: color-mix(in srgb, var(--blue) 13%, transparent); }
+.pill.lg { font-size: 14px; padding: 5px 13px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tile .v { font-size: 24px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 2px; }
+.tile .v small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.st-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 14px; }
+.st-list li { display: flex; justify-content: space-between; gap: 12px; }
+.st-list li > span:first-child { color: var(--muted); }
+.st-list li > span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks .pill { font-weight: 500; font-size: 12px; font-family: var(--mono); }
+.next { display: flex; align-items: center; gap: 12px; border-radius: 12px; padding: 12px 14px; border: 1px dashed color-mix(in srgb, var(--blue) 45%, var(--line)); }
+.next .clock { width: 34px; height: 34px; border-radius: 10px; background: var(--shade), var(--blue); flex-shrink: 0; display: grid; place-items: center; }
+.next .clock svg { width: 18px; height: 18px; color: #fff; }
+.next b { display: block; font-size: 14px; }
+.next span { font-size: 13px; color: var(--muted); }
+.st-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+/* ------------------------------------------------ sections */
+.section { padding: 72px 0; }
+.section + .section { border-top: 1px solid var(--line); }
+.s-kicker { margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--link); }
+.section h2.h { font-size: clamp(24px, 3.4vw, 36px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 12px; max-width: 720px; }
+.section .sub { color: var(--muted); max-width: 680px; margin: 0 0 32px; font-size: 16px; }
+
+/* step diagram */
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 0 0 36px; padding: 0; list-style: none; counter-reset: s; }
+.flow li { position: relative; padding: 0 8px; text-align: center; }
+.flow li::after { content: ""; position: absolute; top: 27px; left: calc(50% + 32px); right: calc(-50% + 32px); height: 2px;
+  background: repeating-linear-gradient(90deg, var(--blue) 0 6px, transparent 6px 11px); }
+.flow li:last-child::after { display: none; }
+.flow .n { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 16px; display: grid; place-items: center; color: #fff;
+  background: var(--shade), var(--blue); box-shadow: 4px 4px 0 var(--sun); font: 700 13px var(--mono); }
+.flow li:last-child .n { background: var(--sun); color: var(--navy); box-shadow: 4px 4px 0 var(--blue); }
+.flow b { display: block; font-size: 15px; }
+.flow span { display: block; font-size: 12.5px; color: var(--muted); }
+.flow code { font-size: 11.5px; color: var(--link); }
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; gap: 14px; }
+  .flow li { display: grid; grid-template-columns: 48px 1fr; column-gap: 14px; text-align: left; padding: 0; }
+  .flow .n { grid-row: span 3; width: 48px; height: 48px; margin: 0; border-radius: 14px; }
+  .flow li::after { top: 54px; bottom: -14px; left: 23px; right: auto; width: 2px; height: auto;
+    background: repeating-linear-gradient(180deg, var(--blue) 0 6px, transparent 6px 11px); }
+}
+
+/* code + notes */
+.split { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.code { border-radius: var(--radius); background: #0b1420; border: 1px solid #1b2a3c; color: #e1eaf3; box-shadow: 8px 8px 0 var(--sun); overflow: hidden; min-width: 0; }
+.code-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #1b2a3c; font: 500 12px var(--mono); color: #93a4b6; }
+.code-bar .dots { display: flex; gap: 6px; } .code-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #23364b; }
+.code-bar a { color: #93a4b6; }
+.code pre { margin: 0; padding: 14px 0; font-size: 12.5px; line-height: 1.7; overflow: auto; max-height: 640px; counter-reset: ln; }
+.code .ln { display: block; padding: 0 16px 0 0; white-space: pre; position: relative; }
+.code .ln::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 40px; padding-right: 14px; text-align: right; color: #3d5266; user-select: none; }
+.code .ln.hl { background: rgba(92,184,255,.10); box-shadow: inset 3px 0 0 var(--sun); }
+.code .k { color: #7cc4ff; } .code .s { color: #ffd400; } .code .c { color: #6f8396; font-style: italic; } .code .v { color: #9be39b; } .code .p { color: #8fa3b8; }
+.code .tag { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 10px; border-radius: 50%; background: var(--sun); color: var(--navy); font: 700 11px var(--sans); vertical-align: 1px; }
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.notes li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 16px 56px; position: relative; transition: border-color .15s ease; }
+.notes li:hover { border-color: var(--blue); }
+.notes .tag { position: absolute; left: 16px; top: 16px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--sun); color: var(--navy); font-weight: 700; font-size: 13px; }
+.notes b { display: block; font-size: 15px; margin-bottom: 2px; }
+.notes p { margin: 0; color: var(--muted); font-size: 14px; }
+.notes code { font-size: 12.5px; background: var(--bg-2); border: 1px solid var(--line); padding: 0 5px; border-radius: 5px; color: var(--text); }
+
+/* ------------------------------------------------ CTA */
+.cta { position: relative; overflow: hidden; background: var(--navy); color: #eaf2fa; border-radius: 22px; padding: 40px; display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 32px; align-items: center; }
+.cta::before { content: ""; position: absolute; top: -220px; right: -220px; width: 460px; height: 460px; border-radius: 50%; background: var(--blue); opacity: .35; }
+.cta > * { position: relative; }
+.cta h2 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.12; font-weight: 800; letter-spacing: -.03em; margin: 0 0 10px; }
+.cta p { color: #a8b8c8; margin: 0 0 20px; max-width: 560px; }
+.cta video { width: 220px; height: 220px; border-radius: 20px; display: block; background: #07070b; box-shadow: 8px 8px 0 var(--sun); }
+.cmd { display: flex; align-items: center; gap: 10px; background: #0e1e2e; border: 1px solid #23364b; border-radius: 12px; padding: 6px 6px 6px 14px; margin-bottom: 12px; max-width: 560px; }
+.cmd code { flex: 1; min-width: 0; font-size: 14px; color: #fff; white-space: pre; overflow-x: auto; }
+.cmd code .d { color: var(--sun); user-select: none; }
+.cmd.multi { align-items: flex-start; padding-top: 12px; }
+.cmd.multi code { line-height: 1.8; padding-bottom: 6px; font-size: 13px; }
+.copy { font: 600 12px var(--sans); padding: 8px 12px; border-radius: 8px; cursor: pointer; border: 1px solid #2b4259; background: #132538; color: #cfe0f0; flex-shrink: 0; }
+.copy:hover { color: #fff; border-color: #5cb8ff; }
+.copy.done { background: var(--sun); color: var(--navy); border-color: var(--sun); }
+.cta h3 { font-size: 15px; margin: 22px 0 8px; color: #fff; }
+.cta .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.cta .btn { background: transparent; color: #fff; border-color: #2b4259; }
+.cta .btn:hover { border-color: #5cb8ff; }
+.cta .btn-primary { background: var(--shade), var(--blue); border-color: transparent; }
+@media (max-width: 760px) { .cta { grid-template-columns: minmax(0, 1fr); padding: 26px 18px; } .cta video { display: none; } }
+
+/* ------------------------------------------------ footer */
+footer { border-top: 1px solid var(--line); background: var(--bg-2); padding: 36px 0 44px; margin-top: 72px; font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; justify-content: space-between; }
+footer .fb { display: flex; gap: 12px; align-items: center; }
+footer .fb img { width: 44px; height: 44px; }
+footer .fb p { margin: 0; }
+footer .fb b { color: var(--text); }
+footer .links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+footer .links a { color: var(--muted); text-decoration: none; }
+footer .links a:hover { color: var(--text); }
+.social { display: flex; gap: 8px; }
+.social a { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.social a:hover { border-color: var(--blue); color: var(--link); }
+.social svg { width: 17px; height: 17px; }
+.fine { flex-basis: 100%; font-size: 12.5px; color: var(--faint); margin: 0; }
+
+/* ------------------------------------------------ quakes: hero rings (replaces the fx hero video) */
+.hero .rings { position: absolute; right: 4%; top: 50%; width: 400px; height: 400px; transform: translateY(-55%); pointer-events: none; }
+.hero .rings circle[stroke-opacity] { animation: ring 4s ease-out infinite; transform-origin: 200px 200px; }
+@keyframes ring { 0% { transform: scale(.85); } 60% { transform: scale(1.04); } 100% { transform: scale(.85); } }
+@media (prefers-reduced-motion: reduce) { .hero .rings circle { animation: none; } }
+@media (max-width: 860px) { .hero .rings { width: 300px; height: 300px; right: -90px; opacity: .45; } }
+@media (max-width: 600px) { .hero .rings { display: none; } }
+
+/* ------------------------------------------------ quakes: map, filters, lists */
+:root { --m0: #8aa0b4; --m1: #2e8bd8; --m2: #e0a800; --m3: #f06a1d; --m4: #d62839; --map-bg: #dfe8ef; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --m0: #7f93a6; --m1: #5cb8ff; --m2: #ffd400; --m3: #ff8a3d; --m4: #ff4d5e; --map-bg: #0e1620; } }
+:root[data-theme="dark"] { --m0: #7f93a6; --m1: #5cb8ff; --m2: #ffd400; --m3: #ff8a3d; --m4: #ff4d5e; --map-bg: #0e1620; }
+.map-card { padding: 0; overflow: hidden; }
+.map-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; padding: 18px 20px 14px; }
+.map-top h2 { margin: 0 0 2px; }
+.map-top p { margin: 0; font-size: 13px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 3px; background: var(--bg-2); }
+.seg button { white-space: nowrap; font: 600 13px var(--sans); color: var(--muted); background: none; border: 0; border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--glow), inset 0 0 0 1px var(--line); }
+.ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.ctl select { min-width: 150px; }
+.leaflet-tile-pane { filter: saturate(.55) contrast(.95); }
+:root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); } }
+#map { height: 540px; background: var(--map-bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); z-index: 0; }
+@media (max-width: 600px) { #map { height: 400px; } .controls { width: 100%; } .ctl { flex: 1; } .ctl select { min-width: 0; width: 100%; } }
+.map-foot { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; justify-content: space-between; padding: 12px 20px 16px; font-size: 13px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; border-radius: 50%; border: 1.5px solid rgba(0,0,0,.25); opacity: .9; }
+.map-foot b { color: var(--text); font-variant-numeric: tabular-nums; }
+.leaflet-container { font: 13px/1.45 var(--sans); }
+.leaflet-container a { color: var(--link); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); box-shadow: 0 10px 30px var(--glow); }
+.leaflet-popup-content { margin: 12px 14px; min-width: 200px; }
+.leaflet-container .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--muted); }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface); color: var(--text); border-bottom-color: var(--line); }
+.pop .m { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.pop .m small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.pop .pl { font-weight: 600; margin: 2px 0 6px; }
+.pop dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0 0 8px; font-size: 12.5px; }
+.pop dt { color: var(--muted); } .pop dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile .v.place { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; line-height: 1.35; margin-top: 4px; }
+.tile a { color: inherit; text-decoration: none; } .tile a:hover { color: var(--link); }
+.bands { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.bands li { display: grid; grid-template-columns: 54px minmax(0, 1fr) 48px; gap: 10px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.bands .bar { height: 10px; border-radius: 99px; background: var(--bg-2); overflow: hidden; border: 1px solid var(--line); }
+.bands .bar i { display: block; height: 100%; border-radius: 99px; min-width: 2px; }
+.bands li > span:last-child { text-align: right; color: var(--muted); }
+.list-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.list-head h2 { margin: 0; }
+td.mag { font-weight: 800; text-align: left; }
+td.mag i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: 0; }
+td.place { text-align: left; white-space: normal; min-width: 180px; }
+td.place a { color: var(--text); text-decoration: none; font-weight: 500; }
+td.place a:hover { color: var(--link); text-decoration: underline; }
+td.place small { display: block; color: var(--muted); font-size: 12px; }
+th.place { text-align: left; }
+.tag-s { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.tag-s.rev { color: var(--up); border-color: color-mix(in srgb, var(--up) 40%, var(--line)); }
+.tag-s.tsu { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, var(--line)); margin-left: 4px; }
+@media (max-width: 600px) { td.place { min-width: 0; } }
+.digest { font-size: 13px; color: var(--muted); border-left: 3px solid var(--sun); padding: 2px 0 2px 10px; margin: 0; }
+.digest b { color: var(--text); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://agentl.com.br" aria-label="agentl home">
+      <img class="cube" src="assets/agentl-cube-256.png" alt="" width="36" height="36">
+      <img class="word word-light" src="assets/agentl-wordmark-light.svg" alt="agentl" width="69" height="22">
+      <img class="word word-dark" src="assets/agentl-wordmark-dark.svg" alt="agentl" width="69" height="22">
+    </a>
+    <a class="badge" href="#how">Built with agentl</a>
+    <nav class="nav" aria-label="Main">
+      <a class="l" href="https://agentl.com.br">Docs</a>
+      <a class="l" href="https://github.com/arimayuji/agentl-examples">All examples</a>
+      <a class="btn btn-sm" href="https://github.com/arimayuji/agentl" aria-label="Star agentl on GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="star-label">Star on GitHub</span>
+      </a>
+      <button class="btn btn-sm icon-btn" id="theme" type="button" aria-label="Theme: auto" title="Theme: auto"></button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <svg class="rings" viewBox="0 0 400 400" aria-hidden="true"><g fill="none" stroke="#fff"><circle cx="200" cy="200" r="40" stroke-opacity=".5"/><circle cx="200" cy="200" r="80" stroke-opacity=".38"/><circle cx="200" cy="200" r="120" stroke-opacity=".26"/><circle cx="200" cy="200" r="160" stroke-opacity=".16"/><circle cx="200" cy="200" r="198" stroke-opacity=".08"/></g><circle cx="200" cy="200" r="14" fill="#ffd400"/><path d="M20 200h80l14-36 18 74 20-96 22 118 18-80 16 40 12-20h160" fill="none" stroke="#ffd400" stroke-width="3" stroke-linejoin="round" stroke-opacity=".9"/></svg>
+  <div class="wrap">
+    <div>
+      <p class="kicker"><b>Open data</b> An agentl example</p>
+      <h1>Live earthquakes, refreshed by one YAML file<span class="dot">.</span></h1>
+      <p class="lede">Every earthquake the U.S. Geological Survey reports worldwide, on one map. Fetched, checked and stored every 15 minutes by an open-source <a href="https://agentl.com.br" style="color:#fff">agentl</a> pipeline that also keeps up when USGS revises a magnitude. Read it below and run it yourself.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-white" href="#how">See how it's built</a>
+        <a class="btn" href="#run">Run it yourself</a>
+        <a class="btn" href="data/quakes.json">Get the JSON</a>
+      </div>
+      <ul class="facts">
+        <li><b id="f-24h">-</b> quakes in 24 h</li>
+        <li>Largest <b id="f-max">-</b></li>
+        <li>Updated <b>every 15 min</b></li>
+        <li>No API key</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap grid">
+    <section class="card map-card" aria-labelledby="map-title">
+      <div class="map-top">
+        <div>
+          <h2 class="t" id="map-title">Earthquakes worldwide</h2>
+          <p id="map-sub">Loading...</p>
+        </div>
+        <div class="controls">
+          <div class="ctl"><span id="win-label">Period</span>
+            <div class="seg" role="group" aria-labelledby="win-label">
+              <button type="button" data-win="24" aria-pressed="true">24 hours</button>
+              <button type="button" data-win="168" aria-pressed="false">7 days</button>
+            </div>
+          </div>
+          <label class="ctl">Minimum magnitude
+            <select id="minmag">
+              <option value="-9">All</option>
+              <option value="1">M1+</option>
+              <option value="2.5">M2.5+</option>
+              <option value="4">M4+</option>
+              <option value="5">M5+</option>
+              <option value="6">M6+</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="map" role="region" aria-label="Map of earthquakes"></div>
+      <div class="map-foot">
+        <div class="legend" id="legend" aria-label="Magnitude legend"></div>
+        <span>Showing <b id="shown">0</b> quakes · circle size and colour by magnitude</span>
+      </div>
+    </section>
+
+    <div class="stats" aria-label="Summary">
+      <div class="tile"><div class="k">Quakes, 24 h</div><div class="v" id="s-24h">-</div></div>
+      <div class="tile"><div class="k">Quakes, 7 days</div><div class="v" id="s-7d">-</div></div>
+      <div class="tile"><div class="k">Largest, 24 h</div><div class="v" id="s-max">-</div><div class="v place" id="s-max-place"></div></div>
+      <div class="tile"><div class="k">Reviewed by USGS</div><div class="v" id="s-rev">-</div></div>
+    </div>
+
+    <div class="grid two">
+      <section class="card" aria-labelledby="list-title">
+        <div class="list-head">
+          <h2 class="t" id="list-title">Quakes <small id="list-sub"></small></h2>
+          <div class="seg" role="group" aria-label="Sort">
+            <button type="button" data-sort="time" aria-pressed="true">Latest</button>
+            <button type="button" data-sort="mag" aria-pressed="false">Largest</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="text-align:left">Mag</th><th class="place">Place</th><th>Time (UTC)</th><th class="opt">Depth</th><th class="opt">Status</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="note">Click a row to find it on the map; the place links to the USGS event page.</p>
+        <h2 class="t" style="margin-top:22px">By magnitude <small id="bands-sub"></small></h2>
+        <ul class="bands" id="bands"></ul>
+      </section>
+
+      <section class="card status-card" aria-labelledby="status-title" id="status">
+        <div class="st-head">
+          <h2 class="t" id="status-title">Pipeline status</h2>
+          <span id="st-outcome" class="pill idle lg">Loading</span>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="k">Quakes read</div><div class="v" id="st-read">-</div></div>
+          <div class="tile"><div class="k">New</div><div class="v" id="st-new">-</div></div>
+          <div class="tile"><div class="k">Revised by USGS</div><div class="v" id="st-revised">-</div></div>
+          <div class="tile"><div class="k">Checks passed</div><div class="v" id="st-checks">-</div></div>
+        </div>
+        <ul class="st-list">
+          <li><span>Last run</span><span id="st-last">-</span></li>
+          <li><span>Last success</span><span id="st-success">-</span></li>
+          <li><span>Sources downloaded</span><span id="st-src">-</span></li>
+          <li><span>Revised in the last 24 h</span><span id="st-rev24">-</span></li>
+          <li><span>History writes</span><span id="st-writes">-</span></li>
+          <li><span>Duration</span><span id="st-dur">-</span></li>
+        </ul>
+        <div>
+          <div class="checks" id="st-rules"></div>
+          <p class="note error" id="st-error" hidden></p>
+        </div>
+        <p class="digest" id="st-digest" hidden></p>
+        <div class="next">
+          <span class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><b id="st-next">Next run</b><span id="st-next-in">Every 15 minutes</span></div>
+        </div>
+        <div class="st-foot">
+          <span id="st-ver">From <code>status.json</code>, written by <code>run.py</code></span>
+          <a class="btn btn-sm" href="https://github.com/arimayuji/agentl-examples/actions/workflows/quakes.yml">All workflow runs</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <p class="s-kicker">How this page is built</p>
+      <h2 class="h" id="how-title">One pipeline file. No server, no database to run, no API key.</h2>
+      <p class="sub">GitHub Actions runs this agentl pipeline every 15 minutes. It writes two JSON files, and this static page reads them. Below is the exact <code>pipeline.yaml</code> that produced the map above.</p>
+
+      <ol class="flow" aria-label="Pipeline steps">
+        <li><div class="n">01</div><b>Fetch</b><span><code>http.get</code> with <code>if_changed</code></span></li>
+        <li><div class="n">02</div><b>Parse</b><span>GeoJSON features to rows</span></li>
+        <li><div class="n">03</div><b>Check</b><span>Ranges, unique ids, freshness</span></li>
+        <li><div class="n">04</div><b>Store</b><span>Changeset on <code>id</code>, 30 days</span></li>
+        <li><div class="n">05</div><b>Publish</b><span>JSON + run status to this page</span></li>
+      </ol>
+
+      <div class="split">
+        <div class="code">
+          <div class="code-bar"><span class="dots"><i></i><i></i><i></i></span><span>quakes/pipeline.yaml</span><a href="https://github.com/arimayuji/agentl-examples/blob/main/quakes/pipeline.yaml">View on GitHub</a></div>
+          <pre id="yaml" aria-label="quakes/pipeline.yaml"><span class="ln"><span class="c"># Loading pipeline.yaml...</span></span></pre>
+        </div>
+        <ol class="notes">
+          <li><span class="tag">1</span><b>Only download when the feed changes</b><p><code>if_changed</code> remembers the <code>Last-Modified</code> of the last good run. If the hourly feed is the same, the run stops with outcome <code>no_change</code> and nothing is rewritten. The 7-day feed fills a fresh history.</p></li>
+          <li><span class="tag">2</span><b>Checks before anything is written</b><p>Latitude and longitude in range, magnitude between -2 and 10, one row per event id, data less than 6 hours old. <code>severity</code> per rule: an impossible row is rejected alone, a quiet feed only warns.</p></li>
+          <li><span class="tag">3</span><b>Updates when USGS revises</b><p>Automatic solutions are revised for days: new magnitudes, new locations, status <code>automatic</code> to <code>reviewed</code>. <code>mode: changeset</code> on <code>id</code> counts them as updated rows, shown as "Revised by USGS" above.</p></li>
+          <li><span class="tag">4</span><b>A daily digest of odd rows</b><p>Row rules flag events with no magnitude or an unusual depth without dropping them. With <code>identity: [id]</code>, each run emits <code>check.digest</code>: new, ongoing and resolved findings for the day, or "all clear".</p></li>
+          <li><span class="tag">5</span><b>The run status is data too</b><p><code>run.py</code> calls <code>agentl.run()</code> with an event listener and turns the result into <code>status.json</code>: the panel above, including a failed run.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="run" aria-labelledby="run-title" style="border-top:0;padding-top:0">
+    <div class="wrap">
+      <div class="cta">
+        <div>
+          <h2 id="run-title">Build your own in an afternoon.</h2>
+          <p>agentl is an open-source YAML ETL library for Python: connectors, checks, incremental runs and, when you need judgement, LLM agent steps. MIT licensed.</p>
+          <div class="cmd"><code><span class="d">$ </span>pip install agentl-etl</code><button class="copy" type="button" data-copy="pip install agentl-etl">Copy</button></div>
+          <h3>Run this pipeline yourself</h3>
+          <div class="cmd multi"><code id="cmds"><span class="d">$ </span>git clone https://github.com/arimayuji/agentl-examples &amp;&amp; cd agentl-examples/quakes
+<span class="d">$ </span>pip install agentl-etl
+<span class="d">$ </span>python run.py &amp;&amp; python -m http.server -d site 8000</code><button class="copy" type="button" data-copy-from="cmds">Copy</button></div>
+          <div class="row">
+            <a class="btn btn-primary" href="https://agentl.com.br/getting-started/">Get started</a>
+            <a class="btn" href="https://github.com/arimayuji/agentl">Star on GitHub</a>
+            <a class="btn" href="https://github.com/arimayuji/agentl-examples">All examples</a>
+          </div>
+        </div>
+        <video autoplay muted loop playsinline preload="metadata" poster="assets/agentl-loop-poster.jpg" aria-label="The agentl cube logo, animated">
+          <source src="assets/agentl-loop.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fb">
+      <img src="assets/agentl-cube-256.png" alt="agentl" width="44" height="44">
+      <p><b>Built with <a href="https://agentl.com.br">agentl</a></b><br>Data: <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php">U.S. Geological Survey</a>. Map: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Pipeline and site: <a href="https://github.com/arimayuji/agentl-examples/blob/main/LICENSE">MIT</a>.</p>
+    </div>
+    <nav class="links" aria-label="Footer">
+      <a href="https://agentl.com.br">Docs</a>
+      <a href="https://github.com/arimayuji/agentl">agentl on GitHub</a>
+      <a href="https://github.com/arimayuji/agentl-examples/tree/main/quakes">Source of this page</a>
+      <a href="https://github.com/arimayuji/agentl-examples">All examples</a>
+    </nav>
+    <div class="social">
+      <a href="https://x.com/useagentl" aria-label="agentl on X (@useagentl)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://instagram.com/useagentl" aria-label="agentl on Instagram (@useagentl)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://github.com/arimayuji/agentl" aria-label="agentl on GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+    <p class="fine">USGS data are public domain. Automatic solutions are preliminary and are revised by seismologists; this page is not an alert service. For official information see the <a href="https://earthquake.usgs.gov/earthquakes/map/">USGS Latest Earthquakes map</a>. Follow <a href="https://x.com/useagentl">@useagentl</a> on X and Instagram.</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* no storage */ } }
+  };
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // Theme: auto -> light -> dark
+  var ICONS = {
+    auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+  };
+  var modes = ["auto", "light", "dark"];
+  function applyTheme(m) {
+    if (m === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", m);
+    var b = $("theme"); b.innerHTML = ICONS[m]; b.setAttribute("aria-label", "Theme: " + m); b.title = "Theme: " + m;
+  }
+  var mode = store.get("quakes-theme") || "auto";
+  if (modes.indexOf(mode) < 0) mode = "auto";
+  applyTheme(mode);
+  $("theme").addEventListener("click", function () {
+    mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+    store.set("quakes-theme", mode); applyTheme(mode); restyle();
+  });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
+  function isDark() { return css("color-scheme") === "dark"; }
+
+  // ------------------------------------------------ formatting
+  function when(iso) {
+    if (!iso) return "never";
+    return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+  }
+  function short(iso) {
+    return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  }
+  function ago(ms) {
+    var m = Math.round(Math.abs(ms) / 60000);
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60); if (h < 48) return h + " h " + (m % 60) + " min";
+    return Math.round(h / 24) + " days";
+  }
+  function magText(m) { return m == null ? "M ?" : "M" + (Math.round(m * 10) / 10).toFixed(1); }
+  function num(n) { return (n || 0).toLocaleString("en-US"); }
+
+  // ------------------------------------------------ magnitude scale
+  var BANDS = [["<2", -99, "--m0"], ["2-4", 2, "--m1"], ["4-5", 4, "--m2"], ["5-6", 5, "--m3"], ["6+", 6, "--m4"]];
+  function band(m) { var b = BANDS[0]; BANDS.forEach(function (x) { if (m != null && m >= x[1]) b = x; }); return b; }
+  function color(m) { return css(band(m)[2]); }
+  function radius(m) { var v = Math.max(m == null ? 0 : m, 0); return Math.max(2.5, Math.min(28, 1.6 + v * v * 0.62)); }
+
+  // ------------------------------------------------ data and filters
+  var doc = null, rows = [], win = 24, minMag = -9, sortBy = "time", map = null, layer = null, tiles = null, byId = {};
+  var saved = store.get("quakes-win"); if (saved === "168") win = 168;
+  var savedMag = store.get("quakes-minmag"); if (savedMag && $("minmag").querySelector('option[value="' + savedMag + '"]')) { minMag = parseFloat(savedMag); $("minmag").value = savedMag; }
+
+  function filtered() {
+    // The windows count back from when the file was written, so a stale file still shows its data.
+    var since = Date.parse(doc.generated_at) - win * 3600e3;
+    return rows.filter(function (q) { return q.t >= since && (minMag <= -9 || (q.mag != null && q.mag >= minMag)); });
+  }
+
+  function initMap() {
+    if (!window.L) { $("map").textContent = "The map library did not load."; return; }
+    var narrow = window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
+    map = L.map("map", { worldCopyJump: true, minZoom: 1, maxZoom: 10, zoomSnap: 0.5, preferCanvas: true, scrollWheelZoom: false })
+      .setView([15, narrow ? 170 : 160], narrow ? 1 : 2);
+    map.on("focus", function () { map.scrollWheelZoom.enable(); });
+    map.on("blur", function () { map.scrollWheelZoom.disable(); });
+    layer = L.layerGroup().addTo(map);
+    restyle();
+  }
+
+  function restyle() {
+    if (map) {
+      // OpenStreetMap tiles; the dark theme darkens them with a CSS filter on the tile pane.
+      if (!tiles) tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Data: <a href="https://earthquake.usgs.gov/">USGS</a>'
+      }).addTo(map);
+    }
+    legend();
+    if (doc) render();
+  }
+
+  function legend() {
+    var box = $("legend"); box.textContent = "";
+    [[1, "<2"], [3, "2-4"], [4.5, "4-5"], [5.5, "5-6"], [6.5, "6+"]].forEach(function (x) {
+      var s = el("span"), r = Math.min(radius(x[0]), 9), i = el("i");
+      i.style.width = i.style.height = (r * 2) + "px"; i.style.background = color(x[0]);
+      s.appendChild(i); s.appendChild(document.createTextNode("M" + x[1])); box.appendChild(s);
+    });
+  }
+
+  function popup(q) {
+    var d = el("div", { "class": "pop" });
+    var m = el("div", { "class": "m" }, magText(q.mag)); m.appendChild(el("small", {}, q.magType || "")); d.appendChild(m);
+    d.appendChild(el("div", { "class": "pl" }, q.place || "Unknown place"));
+    var dl = el("dl");
+    [["Time", when(q.time)], ["Depth", q.depth == null ? "-" : q.depth + " km"], ["Status", q.status + (q.tsunami ? " · tsunami flag" : "")], ["Updated", when(q.updated)]]
+      .forEach(function (x) { dl.appendChild(el("dt", {}, x[0])); dl.appendChild(el("dd", {}, x[1])); });
+    d.appendChild(dl);
+    var a = el("a", { href: q.url, target: "_blank", rel: "noopener" }, "USGS event page"); d.appendChild(a);
+    return d;
+  }
+
+  function render() {
+    var list = filtered();
+    // Map: small quakes first, so the large ones draw on top.
+    if (layer) {
+      layer.clearLayers(); byId = {};
+      list.slice().sort(function (a, b) { return (a.mag || -9) - (b.mag || -9); }).forEach(function (q) {
+        var c = color(q.mag);
+        var mk = L.circleMarker([q.lat, q.lon], { radius: radius(q.mag), color: isDark() ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.9)", weight: 1, fillColor: c, fillOpacity: q.mag >= 4 ? 0.85 : 0.65 });
+        mk.bindPopup(function () { return popup(q); });
+        mk.bindTooltip(magText(q.mag) + " · " + (q.place || ""), { direction: "top", offset: [0, -4] });
+        layer.addLayer(mk); byId[q.id] = mk;
+      });
+    }
+    $("shown").textContent = num(list.length);
+    $("map-sub").textContent = num(list.length) + " quakes in the last " + (win === 24 ? "24 hours" : "7 days") + (minMag > -9 ? " at M" + minMag + " or above" : "") + " · updated " + short(doc.generated_at) + " UTC";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-win]"), function (b) { b.setAttribute("aria-pressed", String(+b.dataset.win === win)); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-sort]"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.sort === sortBy)); });
+    table(list); bands();
+  }
+
+  function table(list) {
+    var sorted = list.slice().sort(sortBy === "mag" ? function (a, b) { return (b.mag == null ? -9 : b.mag) - (a.mag == null ? -9 : a.mag); } : function (a, b) { return b.t - a.t; });
+    var tb = $("rows"); tb.textContent = "";
+    sorted.slice(0, 15).forEach(function (q) {
+      var tr = el("tr", { tabindex: "0" });
+      var m = el("td", { "class": "mag" }); var dot = el("i"); dot.style.background = color(q.mag); m.appendChild(dot); m.appendChild(document.createTextNode(q.mag == null ? "?" : q.mag.toFixed(1)));
+      tr.appendChild(m);
+      var p = el("td", { "class": "place" }); p.appendChild(el("a", { href: q.url, target: "_blank", rel: "noopener" }, q.place || "Unknown place"));
+      p.appendChild(el("small", {}, ago(Date.now() - q.t) + " ago"));
+      tr.appendChild(p);
+      tr.appendChild(el("td", {}, short(q.time)));
+      tr.appendChild(el("td", { "class": "opt" }, q.depth == null ? "-" : q.depth + " km"));
+      var s = el("td", { "class": "opt" }); s.appendChild(el("span", { "class": "tag-s" + (q.status === "reviewed" ? " rev" : "") }, q.status));
+      if (q.tsunami) s.appendChild(el("span", { "class": "tag-s tsu", title: "Tsunami flag set by USGS (not a warning)" }, "tsunami"));
+      tr.appendChild(s);
+      var go = function () { var mk = byId[q.id]; if (!mk || !map) return; map.flyTo([q.lat, q.lon], Math.max(map.getZoom(), 5), { duration: .8 }); mk.openPopup(); $("map").scrollIntoView({ behavior: "smooth", block: "center" }); };
+      tr.addEventListener("click", function (e) { if (e.target.tagName !== "A") go(); });
+      tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+      tb.appendChild(tr);
+    });
+    if (!sorted.length) { var tr = el("tr"); var td = el("td", { colspan: "5" }, "No quakes match these filters."); tr.appendChild(td); tb.appendChild(tr); }
+    $("list-sub").textContent = (sortBy === "mag" ? "largest" : "latest") + " 15 of " + num(list.length);
+  }
+
+  // Counts by magnitude band come from the pipeline (stats in quakes.json).
+  function bands() {
+    var st = doc.stats || {}, counts = (win === 24 ? st.bands_24h : st.bands_7d) || {};
+    var total = 0, max = 0;
+    BANDS.forEach(function (b) { var n = counts[b[0]] || 0; total += n; if (n > max) max = n; });
+    var ul = $("bands"); ul.textContent = "";
+    BANDS.slice().reverse().forEach(function (b) {
+      var n = counts[b[0]] || 0, li = el("li"), bar = el("span", { "class": "bar" }), fill = el("i");
+      fill.style.width = (max ? n / max * 100 : 0) + "%"; fill.style.background = css(b[2]);
+      bar.appendChild(fill);
+      li.appendChild(el("span", {}, "M" + b[0])); li.appendChild(bar); li.appendChild(el("span", {}, num(n)));
+      ul.appendChild(li);
+    });
+    $("bands-sub").textContent = num(total) + " quakes, " + (win === 24 ? "24 hours" : "7 days") + ", all magnitudes";
+  }
+
+  function summary() {
+    var st = doc.stats || {};
+    $("s-24h").textContent = num(st.count_24h); $("f-24h").textContent = num(st.count_24h);
+    $("s-7d").textContent = num(st.count_7d);
+    var big = st.largest_24h;
+    if (big) {
+      var a = el("a", { href: big.url, target: "_blank", rel: "noopener" }, magText(big.mag));
+      $("s-max").textContent = ""; $("s-max").appendChild(a);
+      $("s-max-place").textContent = (big.place || "") + " · " + short(big.time) + " UTC";
+      $("f-max").textContent = magText(big.mag);
+    }
+    var pct = st.count_7d ? Math.round(st.reviewed_7d / st.count_7d * 100) : 0;
+    $("s-rev").textContent = pct + "% "; $("s-rev").appendChild(el("small", {}, "of 7 days"));
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-win]"), function (b) {
+    b.addEventListener("click", function () { win = +b.dataset.win; store.set("quakes-win", String(win)); if (doc) render(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-sort]"), function (b) {
+    b.addEventListener("click", function () { sortBy = b.dataset.sort; if (doc) render(); });
+  });
+  $("minmag").addEventListener("change", function () { minMag = parseFloat(this.value); store.set("quakes-minmag", this.value); if (doc) render(); });
+
+  // ------------------------------------------------ status panel
+  // Next run of the cron "*/15 * * * *" (UTC). GitHub may start scheduled runs a few minutes late.
+  function nextRun(now) { var q = 15 * 60000; return new Date(Math.floor(now.getTime() / q) * q + q); }
+  function tickNext() {
+    var now = new Date(), n = nextRun(now);
+    $("st-next").textContent = "Next run about " + n.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+    $("st-next-in").textContent = "In " + ago(n - now) + " · cron */15 * * * *, GitHub may start it a few minutes late";
+  }
+  tickNext(); setInterval(tickNext, 30000);
+
+  function tileNum(id, n, small) { var v = $(id); v.textContent = num(n) + (small ? " " : ""); if (small) v.appendChild(el("small", {}, small)); }
+  function status(st) {
+    var o = $("st-outcome");
+    if (!st) { o.className = "pill idle lg"; o.textContent = "Not available yet"; return; }
+    var out = st.outcome || "unknown";
+    o.className = "pill lg " + (out === "success" ? "ok" : out === "no_change" ? "idle" : "bad");
+    o.textContent = { success: "Success", no_change: "No change", failed: "Failed" }[out] || out;
+    var w = st.writes || {};
+    tileNum("st-read", st.rows_read);
+    tileNum("st-new", w.inserted);
+    tileNum("st-revised", st.revised_last_run, "last run");
+    var rules = (st.checks && st.checks.rules) || {}, names = Object.keys(rules);
+    var passed = names.filter(function (n) { return rules[n] === "passed"; }).length;
+    var v = $("st-checks"); v.textContent = names.length ? passed + " " : "-";
+    if (names.length) v.appendChild(el("small", {}, "of " + names.length));
+    $("st-last").textContent = when(st.finished_at);
+    $("st-success").textContent = when(st.last_success_at);
+    $("st-src").textContent = (st.sources_downloaded && st.sources_downloaded.length) ? st.sources_downloaded.join(", ") : "none (unchanged)";
+    $("st-rev24").textContent = num(st.revised_24h) + " events";
+    $("st-writes").textContent = num(w.inserted) + " new · " + num(w.updated) + " revised · " + num(w.unchanged) + " same" + (st.pruned ? " · " + num(st.pruned) + " past 30 days removed" : "");
+    $("st-dur").textContent = st.duration_s != null ? st.duration_s.toFixed(1) + " s" : "-";
+    var box = $("st-rules"); box.textContent = "";
+    names.forEach(function (n) {
+      var r = rules[n], cls = r === "passed" ? "ok" : (r === "warn" || r === "warned" || r === "reject") ? "idle" : "bad";
+      box.appendChild(el("span", { "class": "pill " + cls, title: n + ": " + r }, n + (r === "passed" ? "" : " · " + r)));
+    });
+    if (st.error) { $("st-error").hidden = false; $("st-error").textContent = st.error; }
+    if (st.digest && st.digest.summary) {
+      var dg = $("st-digest"); dg.hidden = false; dg.textContent = "";
+      dg.appendChild(el("b", {}, "Daily digest: ")); dg.appendChild(document.createTextNode(st.digest.summary));
+    }
+    if (st.agentl_version) $("st-ver").textContent = "agentl " + st.agentl_version + " · run " + (st.run_id || "");
+  }
+
+  // ------------------------------------------------ pipeline.yaml
+  // Tiny YAML highlighter: comments, keys, strings, ${VARS}, punctuation.
+  var NOTES = [[/if_changed:/, 1], [/^\s*check:/, 2], [/^\s*severity:/, 2], [/mode: changeset/, 3], [/^\s*identity:/, 4], [/^\s*- id: export/, 5]];
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hlValue(v) {
+    var re = /(\$\{[^}]*\})|('[^']*'|"[^"]*")|([{}\[\],])|(\b[a-z_]+)(?=: )/g, out = "", i = 0, m;
+    while ((m = re.exec(v))) {
+      out += esc(v.slice(i, m.index));
+      var cls = m[1] ? "v" : m[2] ? "s" : m[3] ? "p" : "k";
+      out += '<span class="' + cls + '">' + esc(m[0]) + "</span>";
+      i = re.lastIndex;
+    }
+    return out + esc(v.slice(i));
+  }
+  function highlight(text) {
+    return text.replace(/\n$/, "").split("\n").map(function (line) {
+      var tag = 0;
+      NOTES.forEach(function (n) { if (n[0].test(line)) tag = n[1]; });
+      var html, ci = line.search(/(^|\s)#/);
+      var body = ci >= 0 ? line.slice(0, ci) : line, comment = ci >= 0 ? line.slice(ci) : "";
+      var m = body.match(/^(\s*-?\s*)([A-Za-z_][\w]*)(:)(.*)$/);
+      html = m ? esc(m[1]) + '<span class="k">' + m[2] + '</span>' + m[3] + hlValue(m[4]) : hlValue(body);
+      if (comment) html += '<span class="c">' + esc(comment) + "</span>";
+      if (tag) html += '<span class="tag" title="Note ' + tag + '">' + tag + "</span>";
+      return '<span class="ln' + (tag ? " hl" : "") + '">' + (html || " ") + "</span>";
+    }).join("");
+  }
+
+  function getJSON(url) { return fetch(url, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(url + ": " + r.status); return r.json(); }); }
+
+  initMap();
+  getJSON("data/quakes.json").then(function (d) {
+    doc = Array.isArray(d) ? d[0] : d;
+    var f = doc.fields;
+    rows = doc.quakes.map(function (a) {
+      var q = {}; f.forEach(function (k, i) { q[k] = a[i]; });
+      return { id: q.id, time: q.time, t: Date.parse(q.time), updated: q.updated, mag: q.mag, magType: q.mag_type, place: q.place,
+        lon: q.lon, lat: q.lat, depth: q.depth_km, status: q.status, tsunami: !!q.tsunami, url: q.url };
+    });
+    summary(); render();
+  }).catch(function (e) {
+    $("map-sub").textContent = "No data: " + String(e.message || e);
+  });
+  getJSON("data/status.json").then(status).catch(function () { status(null); });
+  fetch("pipeline.yaml", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (t) { $("yaml").innerHTML = highlight(t); })
+    .catch(function () {
+      $("yaml").innerHTML = '<span class="ln"><span class="c"># pipeline.yaml is not deployed here. Read it on GitHub:</span></span>' +
+        '<span class="ln"><span class="c"># https://github.com/arimayuji/agentl-examples/blob/main/quakes/pipeline.yaml</span></span>';
+    });
+
+  // Copy buttons
+  Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (b) {
+    b.addEventListener("click", function () {
+      var text = b.dataset.copy || $(b.dataset.copyFrom).textContent.replace(/^\$ /gm, "");
+      var done = function () { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>

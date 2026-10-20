@@ -1,0 +1,105 @@
+# Earthquakes worldwide from the USGS GeoJSON summary feeds (public domain, no API key).
+#   cd quakes && agentl run pipeline.yaml        (or: python run.py, which also writes status.json)
+name: quakes
+steps:
+  # Events of the last hour. Downloaded only when the feed changed since the last successful run;
+  # otherwise the run ends with outcome `no_change` and nothing is rewritten.
+  - id: latest
+    use: http.get
+    with:
+      url: ${QUAKES_LATEST_URL:-https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson}
+      if_changed: { by: [etag, last_modified] }
+      on_unchanged: stop
+      items: features         # one record per GeoJSON feature
+      retries: 3
+
+  # The last 7 days: backfills a fresh history and brings in USGS revisions of older events
+  # (reviewed magnitudes, new locations, status automatic -> reviewed).
+  - id: backfill
+    use: http.get
+    with:
+      url: ${QUAKES_BACKFILL_URL:-https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson}
+      if_changed: { by: [etag, last_modified] }
+      on_unchanged: continue_empty
+      items: features
+      retries: 3
+
+  - id: features
+    use: concat
+    input: [latest, backfill]
+
+  - id: parse
+    fn: steps:parse_usgs
+    input: features
+
+  # Both feeds carry the last hour: keep the most recently updated version of each event.
+  - id: events
+    fn: steps:newest
+    input: parse
+
+  - id: verify
+    check: events
+    expect:
+      rows: { min: 1 }
+      not_null: [id, time, lat, lon, status]
+      unique: id
+      range:
+        lat: { min: -90, max: 90 }
+        lon: { min: -180, max: 180 }
+        mag: { min: -2, max: 10 }
+      accepted: { status: [automatic, reviewed, deleted] }
+      fresh: { field: time, max_age: 6h }
+    severity:
+      range: reject           # an impossible coordinate or magnitude drops that row only
+      accepted: warn          # a new USGS status value is reported, not fatal
+      fresh: warn             # a quiet feed is worth a look, not a failed run
+    # Row rules: odd but possible values are kept and reported in a daily digest by event id.
+    identity: [id]
+    rules:
+      - { rule: not_null, column: mag, on_fail: flag }
+      - { rule: between, column: depth_km, min: -5, max: 800, on_fail: flag }
+    on_fail: stop
+
+  - id: clean
+    use: select
+    input: verify
+    with:
+      fields: [id, time, updated, mag, mag_type, place, lon, lat, depth_km, status, tsunami, event_type, url]
+
+  # History keyed on the event id. USGS revises events for days, so `updated` counts revisions:
+  # the changeset reports inserted (new events), updated (revised) and unchanged rows.
+  - id: history
+    use: sqlite.write
+    input: clean
+    with:
+      db: ${QUAKES_DB:-data/quakes.sqlite}
+      table: quakes
+      mode: changeset
+      key: id
+
+  # Keep 30 days of history.
+  - id: retention
+    fn: steps:prune
+    after: history
+    with: { db: "${QUAKES_DB:-data/quakes.sqlite}", days: 30 }
+
+  - id: recent
+    use: sqlite.read
+    after: retention
+    with:
+      db: ${QUAKES_DB:-data/quakes.sqlite}
+      query: >
+        select id, time, updated, mag, mag_type, place, lon, lat, depth_km, status, tsunami, url
+        from quakes
+        where time >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')
+          and event_type = 'earthquake'
+
+  - id: site
+    fn: steps:to_site
+    input: recent
+    with: { days: 7 }
+
+  - id: export
+    use: json.write
+    input: site
+    with: { path: site/data/quakes.json }
